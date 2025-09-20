@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+.build/
+.dist/
+
+# Virtual env
+.venv/
+venv/
+ENV/
+
+# Outputs
+outputs/
+*.parquet
+*.feather
+*.duckdb
+
+# Notebooks
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Wheelhouse artifacts
+wheelhouse/*.whl
