@@ -29,7 +29,7 @@ class DataSynthesizerApp:
         self.selected_table = tk.StringVar()
         self.row_count = tk.IntVar(value=1000)
         self.error_profile = tk.StringVar(value="none")
-        self.output_dir = tk.StringVar(value="./output")
+        self.output_dir = tk.StringVar(value="./outputs")
         self.output_format = tk.StringVar(value="csv")
         self.scd2_enabled = tk.BooleanVar(value=False)
         self.preview_data = None
@@ -592,10 +592,10 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
 
                 info_text += "\n\n" + "="*50 + "\n"
                 info_text += "Metricas de Calidad (Preview):\n"
-                info_text += f"Completitud: {sample_metric.get('completeness', 0):.1f}%\n"
+                info_text += f"Completitud: {sample_metric.get('completeness', 0)*100:.1f}%\n"
                 info_text += f"Duplicados: {sample_metric.get('duplicates_count', 0):.0f}\n"
                 info_text += f"Unicidad: {sample_metric.get('uniqueness_ratio', 0):.2f}\n"
-                info_text += f"Validez: {sample_metric.get('validity', 0):.1f}%\n"
+                info_text += f"Validez: {sample_metric.get('validity', 0)*100:.1f}%\n"
 
             self.preview_text.delete(1.0, tk.END)
             self.preview_text.insert(tk.END, info_text)
@@ -679,10 +679,10 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
         """Mostrar resultados de la generación"""
         # Actualizar métricas en la UI
         sample_metric = next(iter(dq_metrics.values()), {})
-        self.metrics_labels["Completitud"].config(text=f"{sample_metric.get('completeness', 0):.1f}%")
+        self.metrics_labels["Completitud"].config(text=f"{sample_metric.get('completeness', 0)*100:.1f}%")
         self.metrics_labels["Duplicados"].config(text=f"{sample_metric.get('duplicates_count', 0):.0f}")
         self.metrics_labels["Unicidad"].config(text=f"{sample_metric.get('uniqueness_ratio', 0):.2f}")
-        self.metrics_labels["Validez"].config(text=f"{sample_metric.get('validity', 0):.1f}%")
+        self.metrics_labels["Validez"].config(text=f"{sample_metric.get('validity', 0)*100:.1f}%")
 
         # Mostrar información en el área de resultados
         result_text = f"Dataset generado exitosamente!\n\n"
@@ -692,10 +692,10 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
 
         result_text += "Reporte de Calidad de Datos:\n"
         result_text += "="*40 + "\n"
-        result_text += f"Completitud Promedio: {sample_metric.get('completeness', 0):.1f}%\n"
+        result_text += f"Completitud Promedio: {sample_metric.get('completeness', 0)*100:.1f}%\n"
         result_text += f"Total Duplicados: {sample_metric.get('duplicates_count', 0):.0f}\n"
         result_text += f"Ratio Unicidad: {sample_metric.get('uniqueness_ratio', 0):.2f}\n"
-        result_text += f"Validez: {sample_metric.get('validity', 0):.1f}%\n\n"
+        result_text += f"Validez: {sample_metric.get('validity', 0)*100:.1f}%\n\n"
 
         result_text += "Primeras filas del dataset:\n"
         result_text += "="*40 + "\n"
