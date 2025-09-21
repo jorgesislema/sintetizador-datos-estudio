@@ -6,7 +6,7 @@ import hashlib
 import random
 
 from core.utils.schemas import load_table_schema
-from core.engines.faker_engine import generate_row
+from core.engines.faker_engine import generate_row, set_table_context
 from core.utils.seed import set_seed
 from core.utils.geo import sample_city
 from core.utils.fx import get_fx_rate
@@ -26,6 +26,9 @@ def _compute_hash(row: Dict[str, Any]) -> str:
 
 def generate(domain: str, table: str, rows: int, seed: int | None = None, error_profile: str = "none") -> List[Dict[str, Any]]:
     set_seed(seed)
+    # Establecer contexto de tabla para generación específica
+    set_table_context(table)
+    
     schema = load_table_schema(domain, table)
     fields = schema["fields"]
 
