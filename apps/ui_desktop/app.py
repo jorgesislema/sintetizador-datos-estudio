@@ -636,10 +636,13 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                 self.root.after(0, lambda: self.status_label.config(text="Guardando archivo..."))
                 self.root.after(0, lambda: self.progress_var.set(60))
 
-                out_dir = Path(self.output_dir.get())
-                out_dir.mkdir(parents=True, exist_ok=True)
+                # Crear carpeta específica para la tabla
+                base_out_dir = Path(self.output_dir.get())
+                table_out_dir = base_out_dir / table
+                table_out_dir.mkdir(parents=True, exist_ok=True)
+                
                 format_ext = self.output_format.get()
-                out_file = out_dir / f"{domain}__{table}.{format_ext}"
+                out_file = table_out_dir / f"{domain}__{table}.{format_ext}"
 
                 # Guardar según el formato seleccionado
                 df = pd.DataFrame(data)
