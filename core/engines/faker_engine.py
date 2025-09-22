@@ -36,6 +36,20 @@ def _rand_date(days_back=365):
     base = datetime.now(UTC)
     return (base - timedelta(days=random.randint(0, days_back))).isoformat()
 
+def _rand_datetime_utc(days_back=365):
+    """Genera una fecha/hora UTC aleatoria"""
+    base = datetime.now(UTC)
+    delta_days = random.randint(-abs(days_back), abs(days_back))
+    result = base + timedelta(days=delta_days, hours=random.randint(0, 23), minutes=random.randint(0, 59))
+    return result.isoformat()
+
+def _rand_datetime_local():
+    """Genera una fecha/hora local aleatoria"""
+    base = datetime.now()
+    delta_days = random.randint(-30, 30)
+    result = base + timedelta(days=delta_days, hours=random.randint(0, 23), minutes=random.randint(0, 59))
+    return result.isoformat()
+
 GENERAL_MAP: Dict[str, Callable[[], Any]] = {
     # Identificadores genéricos
     "id": lambda: _rand_numeric(1, 10_000_000),
@@ -671,6 +685,237 @@ GENERAL_MAP: Dict[str, Callable[[], Any]] = {
     "packaging_preference": lambda: _rand_choice(["Estándar", "Eco-friendly", "De lujo", "Minimalista"]),
     "delivery_method": lambda: _rand_choice(["Domicilio", "Punto de recogida", "Tienda", "Correo"]),
     "customer_feedback_score": lambda: _rand_numeric(1, 10),
+    
+    # Creator Intelligence - Plataformas y Canales
+    "platform_name": lambda: _rand_choice(["YouTube", "TikTok", "Instagram", "Twitter", "Facebook", "LinkedIn"]),
+    "api_source": lambda: _rand_choice(["YouTube Data API v3", "TikTok Business API", "Instagram Basic Display API", "Meta Graph API"]),
+    "url_base": lambda: _rand_choice(["https://www.googleapis.com/youtube/v3", "https://open-api.tiktok.com", "https://graph.instagram.com"]),
+    "tz_default": lambda: _rand_choice(["UTC", "America/New_York", "America/Los_Angeles", "Europe/London", "America/Mexico_City"]),
+    "data_freshness_sla": lambda: _rand_choice(["24h", "12h", "6h", "1h", "real-time"]),
+    "handle": lambda: f"@{_fake_or('handle', 'user_name').lower().replace('.', '').replace(' ', '')}",
+    "channel_name": lambda: _rand_choice([
+        "Tech Reviews Pro", "Daily Life Vlogs", "Gaming Central", "Beauty Secrets", "Fitness Journey",
+        "Cooking Adventures", "Travel Diaries", "Music Covers", "Comedy Sketches", "Educational Hub",
+        "Art Tutorials", "Business Tips", "Health & Wellness", "Fashion Forward", "DIY Projects"
+    ]),
+    "niche_topic": lambda: _rand_choice([
+        "Technology", "Lifestyle", "Gaming", "Beauty", "Fitness", "Food", "Travel", "Music", 
+        "Comedy", "Education", "Art", "Business", "Health", "Fashion", "DIY", "Science", "Sports"
+    ]),
+    "lang": lambda: _rand_choice(["es", "en", "pt", "fr", "de", "it", "ja", "ko"]),
+    "subs_current": lambda: _rand_numeric(100, 10000000),
+    "join_date": lambda: _rand_date(2000),
+    
+    # Creator Intelligence - Contenido
+    "content_type": lambda: _rand_choice(["video", "short", "reel", "post", "story", "live"]),
+    "title": lambda: _rand_choice([
+        "10 Tips que CAMBIARÁN tu vida", "El SECRETO que nadie te cuenta", "Reaccionando a...", 
+        "Tutorial COMPLETO paso a paso", "Mi RUTINA diaria REAL", "Lo que NADIE esperaba",
+        "PROBANDO productos VIRALES", "La VERDAD sobre...", "Cómo conseguir... en 30 días",
+        "EPIC FAIL compilación", "Antes vs Después INCREÍBLE", "Top 5 mejores...",
+        "RESPONDIENDO a sus preguntas", "Detrás de cámaras", "Mi mayor ERROR"
+    ]),
+    "title_tokens_json": lambda: _rand_choice([
+        '["tips", "cambiarán", "vida"]', '["secreto", "nadie", "cuenta"]', 
+        '["tutorial", "completo", "paso"]', '["rutina", "diaria", "real"]'
+    ]),
+    "description_len": lambda: _rand_numeric(50, 5000),
+    "duration_s": lambda: _rand_numeric(15, 3600),
+    "aspect_ratio": lambda: _rand_choice(["16:9", "9:16", "1:1", "4:3", "21:9"]),
+    "hashtags_json": lambda: _rand_choice([
+        '["#viral", "#trending", "#fyp"]', '["#tutorial", "#howto", "#tips"]',
+        '["#lifestyle", "#daily", "#vlog"]', '["#gaming", "#gameplay", "#gamer"]',
+        '["#beauty", "#makeup", "#skincare"]', '["#food", "#recipe", "#cooking"]'
+    ]),
+    "tags_json": lambda: _rand_choice([
+        '["entertainment", "trending"]', '["educational", "tutorial"]',
+        '["lifestyle", "personal"]', '["technology", "review"]'
+    ]),
+    "publish_ts_utc": lambda: _rand_datetime_utc(365),
+    "collab_flag": lambda: _rand_choice([True, False]),
+    "series_id": lambda: _rand_numeric(1000, 9999) if _rand_choice([True, False]) else None,
+    "evergreen_flag": lambda: _rand_choice([True, False]),
+    
+    # Creator Intelligence - Taxonomía y Hashtags
+    "level1": lambda: _rand_choice(["Entertainment", "Education", "Technology", "Lifestyle", "Business", "Arts", "Sports"]),
+    "level2": lambda: _rand_choice(["Gaming", "Comedy", "Music", "Tutorials", "Reviews", "Vlogs", "News"]),
+    "level3": lambda: _rand_choice(["Mobile Games", "PC Gaming", "Stand-up", "Music Covers", "Tech Reviews", "Daily Life"]),
+    "keywords_json": lambda: _rand_choice([
+        '["gaming", "gameplay", "review"]', '["tutorial", "howto", "guide"]',
+        '["comedy", "funny", "humor"]', '["music", "cover", "song"]'
+    ]),
+    "hashtag_text": lambda: _rand_choice([
+        "#fyp", "#viral", "#trending", "#foryou", "#explore", "#reels", "#shorts",
+        "#tutorial", "#tips", "#howto", "#diy", "#lifestyle", "#daily", "#vlog",
+        "#gaming", "#gamer", "#gameplay", "#streamer", "#esports",
+        "#beauty", "#makeup", "#skincare", "#fashion", "#style",
+        "#food", "#recipe", "#cooking", "#foodie", "#delicious",
+        "#fitness", "#workout", "#health", "#gym", "#motivation",
+        "#travel", "#adventure", "#explore", "#nature", "#photography"
+    ]),
+    
+    # Creator Intelligence - Thumbnails y Títulos
+    "variant_code": lambda: _rand_choice(["A", "B", "C", "D", "E"]),
+    "style": lambda: _rand_choice(["meme", "clean", "face", "object", "text", "dramatic", "minimal"]),
+    "main_color": lambda: _rand_choice(["red", "blue", "yellow", "green", "orange", "purple", "black", "white"]),
+    "text_len": lambda: _rand_numeric(0, 100),
+    "face_detected_flag": lambda: _rand_choice([True, False]),
+    "sentiment": lambda: _rand_choice(["positive", "negative", "neutral", "excited", "curious", "urgent"]),
+    "word_count": lambda: _rand_numeric(3, 20),
+    "clickbait_score": lambda: _rand_float(0, 100, 1),
+    
+    # Creator Intelligence - Experimentos
+    "objective": lambda: _rand_choice(["CTR", "retention", "conversion", "engagement", "watch_time", "subscribers"]),
+    "hypothesis": lambda: _rand_choice([
+        "Thumbnails con caras aumentan CTR en 15%",
+        "Títulos con números mejoran clicks en 20%",
+        "Videos de 8-12 min tienen mejor retención",
+        "Publicar en horarios peak aumenta views",
+        "Colaboraciones incrementan suscriptores"
+    ]),
+    "start_ts_utc": lambda: _rand_datetime_utc(30),
+    "end_ts_utc": lambda: _rand_datetime_utc(-30),
+    "owner": lambda: _fake_or("owner", "name"),
+    
+    # Creator Intelligence - Scheduling
+    "dow": lambda: _rand_choice(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]),
+    "hour_local": lambda: _rand_numeric(0, 23),
+    "is_peak_flag": lambda: _rand_choice([True, False]),
+    "historical_avg_ctr_pct": lambda: _rand_float(2, 15, 2),
+    "historical_watch_time_s": lambda: _rand_numeric(30, 600),
+    
+    # Creator Intelligence - Métricas de Performance
+    "impressions": lambda: _rand_numeric(1000, 10000000),
+    "views": lambda: _rand_numeric(100, 5000000),
+    "unique_viewers": lambda: _rand_numeric(80, 3000000),
+    "avg_view_duration_s": lambda: _rand_numeric(15, 600),
+    "avg_percentage_viewed_pct": lambda: _rand_float(20, 80, 1),
+    "retention_30s_pct": lambda: _rand_float(40, 90, 1),
+    "retention_60s_pct": lambda: _rand_float(20, 70, 1),
+    "retention_50pct_mark_s": lambda: _rand_numeric(30, 300),
+    "watch_time_min": lambda: _rand_numeric(10, 100000),
+    "likes": lambda: _rand_numeric(10, 500000),
+    "comments": lambda: _rand_numeric(5, 50000),
+    "shares": lambda: _rand_numeric(2, 25000),
+    "saves": lambda: _rand_numeric(1, 10000),
+    "dislikes": lambda: _rand_numeric(0, 5000),
+    "ctr_thumb_pct": lambda: _rand_float(2, 15, 2),
+    "end_screen_clicks": lambda: _rand_numeric(0, 5000),
+    "card_clicks": lambda: _rand_numeric(0, 2000),
+    "subs_gained": lambda: _rand_numeric(0, 10000),
+    "subs_lost": lambda: _rand_numeric(0, 1000),
+    "revenue_ad_usd": lambda: _rand_float(0.5, 5000, 2),
+    "rpm_usd": lambda: _rand_float(0.5, 10, 2),
+    "cpm_usd": lambda: _rand_float(0.1, 5, 2),
+    
+    # Creator Intelligence - Retención y Fuentes
+    "second_mark": lambda: _rand_numeric(0, 600),
+    "viewers_remaining_pct": lambda: _rand_float(10, 100, 1),
+    "drop_delta_pct": lambda: _rand_float(-20, 5, 1),
+    "key_moment_flag": lambda: _rand_choice(["hook", "valley", "peak", "normal"]),
+    "source": lambda: _rand_choice(["search", "home", "suggested", "shorts", "external", "playlist", "browse", "notifications"]),
+    "ctr_pct": lambda: _rand_float(1, 20, 2),
+    
+    # Creator Intelligence - Audiencia
+    "subs_total": lambda: _rand_numeric(100, 10000000),
+    "returning_viewers": lambda: _rand_numeric(50, 1000000),
+    "new_viewers": lambda: _rand_numeric(20, 500000),
+    "gender_mix_json": lambda: _rand_choice([
+        '{"male": 65, "female": 35}', '{"male": 45, "female": 55}',
+        '{"male": 50, "female": 50}', '{"male": 40, "female": 60}'
+    ]),
+    "age_brackets_json": lambda: _rand_choice([
+        '{"13-17": 15, "18-24": 35, "25-34": 30, "35-44": 15, "45+": 5}',
+        '{"13-17": 25, "18-24": 40, "25-34": 25, "35-44": 8, "45+": 2}',
+        '{"13-17": 5, "18-24": 20, "25-34": 40, "35-44": 25, "45+": 10}'
+    ]),
+    "geo_top_json": lambda: _rand_choice([
+        '{"US": 35, "MX": 25, "ES": 15, "AR": 10, "CO": 8, "other": 7}',
+        '{"MX": 40, "US": 20, "ES": 15, "AR": 12, "PE": 8, "other": 5}',
+        '{"ES": 45, "MX": 20, "AR": 15, "US": 10, "CO": 5, "other": 5}'
+    ]),
+    "device_mix_json": lambda: _rand_choice([
+        '{"mobile": 75, "desktop": 20, "tablet": 5}',
+        '{"mobile": 85, "desktop": 12, "tablet": 3}',
+        '{"mobile": 65, "desktop": 30, "tablet": 5}'
+    ]),
+    
+    # Creator Intelligence - Testing y Pacing
+    "hour_since_publish": lambda: _rand_numeric(0, 48),
+    "uplift_ctr_pct": lambda: _rand_float(-10, 50, 1),
+    "winner_flag": lambda: _rand_choice([True, False]),
+    
+    # Creator Intelligence - NLP y Comentarios
+    "comments_count": lambda: _rand_numeric(5, 50000),
+    "sentiment_avg": lambda: _rand_float(-1, 1, 2),
+    "topics_json": lambda: _rand_choice([
+        '["positive_feedback", "requests", "questions"]',
+        '["criticism", "suggestions", "praise"]',
+        '["funny_reactions", "memes", "appreciation"]'
+    ]),
+    "toxicity_rate_pct": lambda: _rand_float(0, 15, 1),
+    "questions_count": lambda: _rand_numeric(0, 500),
+    "suggestions_count": lambda: _rand_numeric(0, 200),
+    
+    # Creator Intelligence - Scheduling y Competencia
+    "posted_ts_local": lambda: _rand_datetime_local(),
+    "delay_min": lambda: _rand_numeric(-30, 120),
+    "within_peak_flag": lambda: _rand_choice([True, False]),
+    "competitor_content_id": lambda: _rand_numeric(100000, 999999),
+    "competitor_channel": lambda: _rand_choice([
+        "TechReviewer", "LifestyleGuru", "GamingPro", "BeautyExpert", "FoodieChannel",
+        "TravelAddict", "FitnessCoach", "MusicMaker", "ComedyCentral", "EducationHub"
+    ]),
+    "velocity_views_24h": lambda: _rand_numeric(1000, 1000000),
+    "ctr_proxy_pct": lambda: _rand_float(2, 12, 1),
+    "avg_duration_proxy_s": lambda: _rand_numeric(30, 900),
+    
+    # Creator Intelligence - Recomendaciones y Reportes
+    "category": lambda: _rand_choice(["hook", "title", "thumbnail", "format", "length", "hashtag", "schedule", "content"]),
+    "action_text": lambda: _rand_choice([
+        "Mejorar hook en primeros 5 segundos",
+        "Usar thumbnails con caras expresivas",
+        "Optimizar títulos con números específicos",
+        "Reducir duración a 8-12 minutos",
+        "Publicar en horarios de mayor audiencia",
+        "Incluir hashtags trending del nicho",
+        "Agregar llamadas a acción más claras"
+    ]),
+    "expected_uplift_metric": lambda: _rand_choice(["CTR", "watch_time", "retention", "engagement", "subscribers"]),
+    "expected_uplift_pct": lambda: _rand_float(5, 50, 1),
+    "priority": lambda: _rand_choice(["high", "medium", "low", "critical"]),
+    "due_date": lambda: _rand_date(30),
+    "report_type": lambda: _rand_choice(["diagnosis", "guide", "recommendations", "experiment_results", "monthly_review"]),
+    "storage_uri": lambda: f"s3://creator-intelligence/reports/{_rand_numeric(1000, 9999)}.pdf",
+    "summary_md": lambda: "## Resumen Ejecutivo\n\nAnálisis de performance del canal...",
+    
+    # Creator Intelligence - Gestión de Proyectos
+    "client_id": lambda: _rand_numeric(1000, 9999),
+    "scope": lambda: _rand_choice(["diagnosis", "retainer", "audit", "optimization", "strategy"]),
+    "pricing_model": lambda: _rand_choice(["hourly", "monthly", "project", "performance"]),
+    "milestone_date": lambda: _rand_date(90),
+    "milestone_name": lambda: _rand_choice([
+        "Initial Assessment", "Strategy Development", "Implementation Phase 1", 
+        "Mid-point Review", "Optimization Round", "Final Delivery"
+    ]),
+    "deliverable_type": lambda: _rand_choice(["diagnosis", "guide", "recommendations", "report", "strategy"]),
+    "delivered_date": lambda: _rand_date(30),
+    "acceptance_status": lambda: _rand_choice(["pending", "accepted", "revision_requested", "approved"]),
+    "meeting_ts_utc": lambda: _rand_datetime_utc(7),
+    "attendees_json": lambda: '["client_lead", "creator_manager", "analyst", "strategist"]',
+    "agenda_md": lambda: "## Agenda\n1. Review metrics\n2. Discuss recommendations\n3. Plan next steps",
+    "outcomes_md": lambda: "## Outcomes\n- Agreed on CTR optimization strategy\n- Set targets for next month",
+    "next_actions_json": lambda: '["Implement new thumbnail strategy", "A/B test titles", "Schedule follow-up"]',
+    
+    # Creator Intelligence - Raw Data
+    "payload_json": lambda: '{"metrics": {"views": 12500, "ctr": 8.5}, "timestamp": "2024-01-01T12:00:00Z"}',
+    "pulled_ts_utc": lambda: _rand_datetime_utc(1),
+    "api_endpoint": lambda: _rand_choice([
+        "/youtube/v3/analytics", "/tiktok/v1/business/insights", 
+        "/instagram/v1/insights", "/facebook/v12.0/insights"
+    ]),
+    "rate_limit_ms": lambda: _rand_numeric(100, 5000),
+    "schema_version": lambda: _rand_choice(["v1.0", "v1.1", "v2.0", "v2.1"]),
     
     # Campos common/metadata 
     "pii_sensitivity": lambda: _rand_choice(["PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED"]),
