@@ -1,8 +1,10 @@
-"""Motor Faker mejorado con heurísticas simples.
+"""Motor Faker mejorado con heurísticas simples y soporte de localización.
 
 El objetivo es evitar valores None masivos en previews y datasets cuando
 los nombres de campo no están mapeados explícitamente. Se aplican reglas
 por nombre y sufijos/prefijos frecuentes.
+
+Soporta contextos geográficos y localización de datos por país/región.
 """
 from __future__ import annotations
 from typing import Dict, Any, Callable
@@ -14,9 +16,41 @@ try:  # pragma: no cover
 except ImportError:  # pragma: no cover
     Faker = None  # type: ignore
 
+# Importar sistemas de localización
+try:
+    from core.localization.geographic_contexts import (
+        get_context_data, get_random_city, get_random_province, 
+        get_phone_format, get_currency
+    )
+    LOCALIZATION_AVAILABLE = True
+except ImportError:
+    LOCALIZATION_AVAILABLE = False
+
 _FAKE = Faker() if Faker else None
 if _FAKE:
     _FAKE.seed_instance(42)
+
+# ===== CONFIGURACIÓN GLOBAL DE LOCALIZACIÓN =====
+_CURRENT_GEOGRAPHIC_CONTEXT = "global"
+_CURRENT_LANGUAGE = "en"
+
+def set_geographic_context(context_name: str):
+    """Establecer el contexto geográfico global para la generación"""
+    global _CURRENT_GEOGRAPHIC_CONTEXT
+    _CURRENT_GEOGRAPHIC_CONTEXT = context_name
+
+def set_language_context(language: str):
+    """Establecer el idioma para la generación"""
+    global _CURRENT_LANGUAGE
+    _CURRENT_LANGUAGE = language
+
+def get_current_geographic_context() -> str:
+    """Obtener el contexto geográfico actual"""
+    return _CURRENT_GEOGRAPHIC_CONTEXT
+
+def get_current_language() -> str:
+    """Obtener el idioma actual"""
+    return _CURRENT_LANGUAGE
 
 def _fake_or(default: str, attr: str) -> str:
     if _FAKE and hasattr(_FAKE, attr):
@@ -49,6 +83,100 @@ def _rand_datetime_local():
     delta_days = random.randint(-30, 30)
     result = base + timedelta(days=delta_days, hours=random.randint(0, 23), minutes=random.randint(0, 59))
     return result.isoformat()
+
+# ===== FUNCIONES LOCALIZADAS POR CONTEXTO GEOGRÁFICO =====
+
+def _localized_city():
+    """Genera una ciudad según el contexto geográfico actual"""
+    if LOCALIZATION_AVAILABLE:
+        return get_random_city(_CURRENT_GEOGRAPHIC_CONTEXT)
+    return _fake_or("City", "city")
+
+def _localized_province():
+    """Genera una provincia/estado según el contexto geográfico actual"""
+    if LOCALIZATION_AVAILABLE:
+        return get_random_province(_CURRENT_GEOGRAPHIC_CONTEXT)
+    return _fake_or("State", "state")
+
+def _localized_phone():
+    """Genera un teléfono con formato del contexto geográfico actual"""
+    if LOCALIZATION_AVAILABLE:
+        phone_format = get_phone_format(_CURRENT_GEOGRAPHIC_CONTEXT)
+        if phone_format != "MIXED":
+            # Generar número según formato del país
+            if phone_format == "+593":  # Ecuador
+                return f"+593-{random.randint(90,99)}-{random.randint(100,999)}-{random.randint(1000,9999)}"
+            elif phone_format == "+57":  # Colombia
+                return f"+57-{random.randint(300,350)}-{random.randint(100,999)}-{random.randint(1000,9999)}"
+            elif phone_format == "+52":  # México
+                return f"+52-{random.randint(55,99)}-{random.randint(1000,9999)}-{random.randint(1000,9999)}"
+            elif phone_format == "+34":  # España
+                return f"+34-{random.randint(600,799)}-{random.randint(100,999)}-{random.randint(100,999)}"
+            elif phone_format == "+1":  # USA/Canadá
+                return f"+1-{random.randint(200,999)}-{random.randint(200,999)}-{random.randint(1000,9999)}"
+            else:
+                return f"{phone_format}-{random.randint(100000,999999999)}"
+    return _fake_or("+1-555-0000", "phone_number")
+
+def _localized_currency():
+    """Obtiene la moneda del contexto geográfico actual"""
+    if LOCALIZATION_AVAILABLE:
+        return get_currency(_CURRENT_GEOGRAPHIC_CONTEXT)
+    return "USD"
+
+def _localized_address():
+    """Genera una dirección localizada según el contexto geográfico"""
+    if LOCALIZATION_AVAILABLE:
+        context = get_context_data(_CURRENT_GEOGRAPHIC_CONTEXT)
+        if "streets" in context:
+            street = random.choice(context["streets"])
+            number = random.randint(1, 999)
+            return f"{street} {number}"
+    return _fake_or("123 Main St", "address")
+
+def _localized_postal_code():
+    """Genera código postal según formato del país"""
+    if LOCALIZATION_AVAILABLE:
+        context = get_context_data(_CURRENT_GEOGRAPHIC_CONTEXT)
+        postal_format = context.get("postal_code_format", "#####")
+        
+        # Generar según formato específico
+        if postal_format == "EC######":  # Ecuador
+            return f"EC{random.randint(100000,999999)}"
+        elif postal_format == "######":  # Colombia
+            return f"{random.randint(100000,999999)}"
+        elif postal_format == "#####":  # México, España, USA
+            return f"{random.randint(10000,99999)}"
+        elif postal_format == "A####AAA":  # Argentina
+            return f"{random.choice('ABCDEFG')}{random.randint(1000,9999)}{random.choice('ABC')}{random.choice('ABC')}{random.choice('ABC')}"
+        elif postal_format == "A#A #A#":  # Canadá
+            return f"{random.choice('ABCDEFG')}{random.randint(0,9)}{random.choice('ABCDEFG')} {random.randint(0,9)}{random.choice('ABCDEFG')}{random.randint(0,9)}"
+    return f"{random.randint(10000,99999)}"
+
+def _localized_country():
+    """Obtiene el país del contexto geográfico actual"""
+    if LOCALIZATION_AVAILABLE:
+        context = get_context_data(_CURRENT_GEOGRAPHIC_CONTEXT)
+        if _CURRENT_GEOGRAPHIC_CONTEXT == "global":
+            return random.choice(context.get("countries", ["Global"]))
+        else:
+            # Mapear código de país a nombre
+            country_names = {
+                "ecuador": "Ecuador",
+                "colombia": "Colombia", 
+                "mexico": "México",
+                "argentina": "Argentina",
+                "chile": "Chile",
+                "peru": "Perú",
+                "espana": "España",
+                "francia": "Francia",
+                "alemania": "Alemania",
+                "italia": "Italia",
+                "usa": "Estados Unidos",
+                "canada": "Canadá"
+            }
+            return country_names.get(_CURRENT_GEOGRAPHIC_CONTEXT, "Global")
+    return _fake_or("Country", "country")
 
 GENERAL_MAP: Dict[str, Callable[[], Any]] = {
     # Identificadores genéricos
@@ -83,6 +211,21 @@ GENERAL_MAP: Dict[str, Callable[[], Any]] = {
     "transaction_amount": lambda: _rand_float(1, 10000, 2),
     "fee_amount": lambda: _rand_float(0, 100, 2),
     
+    # ===== CAMPOS GEOGRÁFICOS LOCALIZADOS =====
+    "city": lambda: _localized_city(),
+    "city_name": lambda: _localized_city(),
+    "state": lambda: _localized_province(),
+    "province": lambda: _localized_province(),
+    "state_province": lambda: _localized_province(),
+    "country": lambda: _localized_country(),
+    "country_name": lambda: _localized_country(),
+    "address": lambda: _localized_address(),
+    "street_address": lambda: _localized_address(),
+    "postal_code": lambda: _localized_postal_code(),
+    "zip_code": lambda: _localized_postal_code(),
+    "currency_code": lambda: _localized_currency(),
+    "phone_number": lambda: _localized_phone(),
+    
     # Enterprise - HR/RR.HH.
     "employee_id": lambda: _rand_numeric(10000, 99999),
     "email_corp": lambda: _fake_or("john.doe@company.com", "company_email"),
@@ -116,14 +259,14 @@ GENERAL_MAP: Dict[str, Callable[[], Any]] = {
     "cost_unit": lambda: _rand_float(1, 250, 2),
     "unit_price": lambda: _rand_float(1, 500, 2),
     "supplier_name": lambda: _fake_or("Supplier Corp", "company"),
-    "contact_phone": lambda: _fake_or("+1234567890", "phone_number"),
+    "contact_phone": lambda: _localized_phone(),
     "credit_terms_days": lambda: _rand_numeric(15, 90),
     "lead_time_days": lambda: _rand_numeric(1, 30),
     "store_name": lambda: _fake_or("Store Name", "street_name"),
     "store_type": lambda: _rand_choice(["Convenience", "Grocery", "Specialty", "Department"]),
     "owner_name": lambda: _fake_or("Owner Name", "name"),
     "customer_name": lambda: _fake_or("Customer Name", "name"),
-    "phone": lambda: _fake_or("+1234567890", "phone_number"),
+    "phone": lambda: _localized_phone(),
     "loyalty_points": lambda: _rand_numeric(0, 10000),
     "loyalty_tier": lambda: _rand_choice(["Bronze", "Silver", "Gold", "Platinum"]),
     "loyalty_points_balance": lambda: _rand_numeric(0, 50000),
