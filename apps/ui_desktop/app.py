@@ -10,10 +10,32 @@ from pathlib import Path
 from typing import List, Dict, Any
 import threading
 import json
+from datetime import datetime
+import uuid
 
 from core.generators import generate
 from core.dq.profiler import profile
 from core.integrity.scd2 import scd2_version_rows
+
+# Importar sistema de localización
+try:
+    from core.localization import (
+        get_available_contexts, get_region_options, 
+        get_available_languages, get_language_display_names
+    )
+    LOCALIZATION_AVAILABLE = True
+except ImportError:
+    LOCALIZATION_AVAILABLE = False
+
+# Importar sistema de ecosistemas
+try:
+    from core.ecosystems import (
+        get_available_ecosystem_options,
+        generate_ecosystem_data
+    )
+    ECOSYSTEMS_AVAILABLE = True
+except ImportError:
+    ECOSYSTEMS_AVAILABLE = False
 
 
 class DataSynthesizerApp:
@@ -32,6 +54,25 @@ class DataSynthesizerApp:
         self.output_dir = tk.StringVar(value="./outputs")
         self.output_format = tk.StringVar(value="csv")
         self.scd2_enabled = tk.BooleanVar(value=False)
+        
+        # ===== NUEVAS VARIABLES DE LOCALIZACIÓN =====
+        self.language = tk.StringVar(value="Español")
+        self.geographic_context = tk.StringVar(value="Global")
+        
+        # ===== VARIABLES DE SESIÓN =====
+        self.current_session_id = None
+        self.session_folder = None
+        
+        # ===== VARIABLES DE ECOSISTEMAS =====
+        self.mode = tk.StringVar(value="single")  # "single" o "ecosystem"
+        self.selected_ecosystem = tk.StringVar()
+        self.ecosystem_volume = tk.IntVar(value=1000)
+        # Auto-recalculo de descripción al cambiar volumen base
+        try:
+            self.ecosystem_volume.trace_add('write', lambda *args: self.update_ecosystem_mode_info())
+        except Exception:
+            pass
+        
         self.preview_data = None
         self.generated_data = None
         self.dq_report = None
@@ -92,52 +133,232 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
         self.show_step(1)
 
     def create_step1(self):
-        """Crear el Paso 1: Selección de Dominio y Tabla"""
+        """Crear el Paso 1: Selección de Modo y Datos"""
         self.step1_frame = ttk.Frame(self.steps_container)
 
-        step_label = ttk.Label(self.step1_frame, text="Paso 1: Seleccion de Dominio y Tabla",
+        step_label = ttk.Label(self.step1_frame, text="Paso 1: Selección de Modo y Datos",
                               style="Step.TLabel")
         step_label.pack(pady=(0, 20))
 
-        # Frame de selección
-        selection_frame = ttk.LabelFrame(self.step1_frame, text="Selección", padding="10")
-        selection_frame.pack(fill=tk.X, pady=(0, 20))
+        # Frame de selección de modo
+        mode_frame = ttk.LabelFrame(self.step1_frame, text="Modo de Generación", padding="10")
+        mode_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        # Radio buttons para seleccionar modo
+        ttk.Radiobutton(mode_frame, text="📊 Tabla Individual", 
+                       variable=self.mode, value="single",
+                       command=self.on_mode_changed).pack(anchor=tk.W, pady=2)
+        ttk.Radiobutton(mode_frame, text="🏢 Ecosistema de Negocio Completo", 
+                       variable=self.mode, value="ecosystem",
+                       command=self.on_mode_changed).pack(anchor=tk.W, pady=2)
 
+        # Frame de selección (cambia según el modo)
+        self.selection_frame = ttk.LabelFrame(self.step1_frame, text="Selección", padding="10")
+        self.selection_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        # Contenido dinámico según el modo
+        self.single_mode_frame = ttk.Frame(self.selection_frame)
+        self.ecosystem_mode_frame = ttk.Frame(self.selection_frame)
+        
+        self.create_single_mode_widgets()
+        self.create_ecosystem_mode_widgets()
+
+        # Navegación temprana (el botón estaba arriba para mayor visibilidad)
+        nav_step1 = ttk.Frame(self.step1_frame)
+        nav_step1.pack(fill=tk.X, pady=(10, 5))
+        self.continue_btn = ttk.Button(nav_step1, text="Continuar al Paso 2", command=lambda: self.show_step(2), state='disabled')
+        self.continue_btn.pack(side=tk.RIGHT)
+
+        self.info_frame = ttk.LabelFrame(self.step1_frame, text="Descripción / Información", padding="10")
+        self.info_frame.pack(fill=tk.BOTH, expand=True, pady=(5, 0))
+
+        # Área de texto para mostrar información (altura mayor porque el botón está separado)
+        self.info_text = scrolledtext.ScrolledText(self.info_frame, height=14, width=80, wrap=tk.WORD)
+        self.info_text.pack(fill=tk.BOTH, expand=True)
+        self.info_text.insert(tk.END, "Selecciona un modo de generación para comenzar...")
+
+        # Mostrar modo por defecto
+        self.on_mode_changed()
+
+        # Barra de progreso pasiva (informativa) una sola vez
+        passive_frame = ttk.Frame(self.step1_frame)
+        passive_frame.pack(fill=tk.X, pady=(5, 10))
+        ttk.Label(passive_frame, text="Progreso (se activa en Paso 2):").pack(anchor=tk.W)
+        self.passive_progress = ttk.Progressbar(passive_frame, maximum=100, value=0)
+        self.passive_progress.pack(fill=tk.X)
+
+    def create_single_mode_widgets(self):
+        """Crear widgets para modo tabla individual"""
         # Dominio
-        ttk.Label(selection_frame, text="Dominio:").grid(row=0, column=0, sticky=tk.W, pady=5)
-        self.domain_combo = ttk.Combobox(selection_frame, textvariable=self.selected_domain,
+        ttk.Label(self.single_mode_frame, text="Dominio:").grid(row=0, column=0, sticky=tk.W, pady=5)
+        self.domain_combo = ttk.Combobox(self.single_mode_frame, textvariable=self.selected_domain,
                                         state="readonly", width=30)
         self.domain_combo.grid(row=0, column=1, padx=(10, 0), pady=5)
         self.domain_combo.bind("<<ComboboxSelected>>", self.on_domain_selected)
 
         # Tabla
-        ttk.Label(selection_frame, text="Tabla:").grid(row=1, column=0, sticky=tk.W, pady=5)
-        self.table_combo = ttk.Combobox(selection_frame, textvariable=self.selected_table,
+        ttk.Label(self.single_mode_frame, text="Tabla:").grid(row=1, column=0, sticky=tk.W, pady=5)
+        self.table_combo = ttk.Combobox(self.single_mode_frame, textvariable=self.selected_table,
                                        state="readonly", width=30)
         self.table_combo.grid(row=1, column=1, padx=(10, 0), pady=5)
         self.table_combo.bind("<<ComboboxSelected>>", self.on_table_selected)
 
-        # Sección de columnas disponibles
-        columns_frame = ttk.LabelFrame(self.step1_frame, text="Columnas Disponibles", padding="10")
-        columns_frame.pack(fill=tk.BOTH, expand=True, pady=(20, 0))
+    def create_ecosystem_mode_widgets(self):
+        """Crear widgets para modo ecosistema"""
+        # Ecosistema
+        ttk.Label(self.ecosystem_mode_frame, text="Tipo de Negocio:").grid(row=0, column=0, sticky=tk.W, pady=5)
+        self.ecosystem_combo = ttk.Combobox(self.ecosystem_mode_frame, textvariable=self.selected_ecosystem,
+                                           state="readonly", width=50)
+        self.ecosystem_combo.grid(row=0, column=1, padx=(10, 0), pady=5)
+        self.ecosystem_combo.bind("<<ComboboxSelected>>", self.on_ecosystem_selected)
+        
+        # Volumen base
+        ttk.Label(self.ecosystem_mode_frame, text="Volumen Base:").grid(row=1, column=0, sticky=tk.W, pady=5)
+        volume_frame = ttk.Frame(self.ecosystem_mode_frame)
+        volume_frame.grid(row=1, column=1, padx=(10, 0), pady=5, sticky=tk.W)
+        
+        ttk.Entry(volume_frame, textvariable=self.ecosystem_volume, width=10).pack(side=tk.LEFT)
+        ttk.Label(volume_frame, text="registros (se escala automáticamente)").pack(side=tk.LEFT, padx=(5, 0))
 
-        # Área de texto para mostrar columnas
-        # Altura reducida para que el botón Continuar siempre quede visible incluso en pantallas pequeñas
-        self.columns_text = scrolledtext.ScrolledText(columns_frame, height=12, width=80, wrap=tk.WORD)
-        self.columns_text.pack(fill=tk.BOTH, expand=True)
-        self.columns_text.insert(tk.END, "Selecciona un dominio y tabla para ver las columnas disponibles...")
+    def on_mode_changed(self):
+        """Manejar cambio de modo"""
+        # Ocultar ambos frames
+        self.single_mode_frame.pack_forget()
+        self.ecosystem_mode_frame.pack_forget()
+        
+        if self.mode.get() == "single":
+            # Mostrar modo tabla individual
+            self.single_mode_frame.pack(fill=tk.X, expand=True)
+            self.info_frame.config(text="Columnas Disponibles")
+            self.update_single_mode_info()
+            # Estado del botón continuar depende de selección
+            if self.get_selected_domain() and self.get_selected_table():
+                self.continue_btn.configure(state='normal')
+            else:
+                self.continue_btn.configure(state='disabled')
+        else:
+            # Mostrar modo ecosistema
+            self.ecosystem_mode_frame.pack(fill=tk.X, expand=True)
+            self.info_frame.config(text="Descripción del Ecosistema")
+            self.load_ecosystems()
+            self.update_ecosystem_mode_info()
+            # Habilitar sólo si hay ecosistema seleccionado
+            if self.selected_ecosystem.get():
+                self.continue_btn.configure(state='normal')
+            else:
+                self.continue_btn.configure(state='disabled')
+        # Guardar preferencia de modo
+        try:
+            self._save_preferences()
+        except Exception:
+            pass
+        # Si el usuario ya está en Paso 2, refrescar etiqueta
+        if self.current_step == 2 and hasattr(self, 'selection_info'):
+            if self.mode.get() == 'single':
+                domain = self.get_selected_domain()
+                table = self.get_selected_table()
+                if domain and table:
+                    self.selection_info.config(text=f"Dominio: {domain} | Tabla: {table}")
+                else:
+                    self.selection_info.config(text="Selecciona un dominio y tabla en el Paso 1")
+            else:
+                eco = self.selected_ecosystem.get() or '—'
+                self.selection_info.config(text=f"Ecosistema seleccionado: {eco}")
 
-        # Botón continuar
-        continue_btn = ttk.Button(self.step1_frame, text="Continuar al Paso 2",
-                                  command=lambda: self.show_step(2))
-        continue_btn.pack(pady=10)
+    def load_ecosystems(self):
+        """Cargar ecosistemas disponibles"""
+        if ECOSYSTEMS_AVAILABLE:
+            try:
+                ecosystems = get_available_ecosystem_options()
+                self.ecosystem_combo['values'] = list(ecosystems.values())
+                
+                # Mapear display name a key
+                self.ecosystem_display_map = {v: k for k, v in ecosystems.items()}
+                
+            except Exception as e:
+                self.ecosystem_combo['values'] = ["Error cargando ecosistemas"]
+                print(f"Error cargando ecosistemas: {e}")
+        else:
+            self.ecosystem_combo['values'] = ["Sistema de ecosistemas no disponible"]
 
-        # Barra de progreso pasiva (informativa) para que el usuario sepa que existe
-        passive_frame = ttk.Frame(self.step1_frame)
-        passive_frame.pack(fill=tk.X, pady=(5, 10))
-        ttk.Label(passive_frame, text="Progreso (aparece activo en Paso 2):").pack(anchor=tk.W)
-        self.passive_progress = ttk.Progressbar(passive_frame, maximum=100, value=0)
-        self.passive_progress.pack(fill=tk.X)
+    def on_ecosystem_selected(self, event=None):
+        """Manejar selección de ecosistema"""
+        self.update_ecosystem_mode_info()
+        if self.selected_ecosystem.get():
+            self.continue_btn.configure(state='normal')
+        else:
+            self.continue_btn.configure(state='disabled')
+
+    def update_single_mode_info(self):
+        """Actualizar información del modo tabla individual"""
+        self.info_text.delete(1.0, tk.END)
+        
+        if self.get_selected_domain() and self.get_selected_table():
+            # Mostrar información de columnas como antes
+            self.on_table_selected()
+        else:
+            self.info_text.insert(tk.END, "Selecciona un dominio y tabla para ver las columnas disponibles...")
+
+    def update_ecosystem_mode_info(self):
+        """Actualizar información del modo ecosistema"""
+        self.info_text.delete(1.0, tk.END)
+        
+        selected_display = self.selected_ecosystem.get()
+        if not selected_display or not ECOSYSTEMS_AVAILABLE:
+            self.info_text.insert(tk.END, "Selecciona un tipo de negocio para ver la descripción del ecosistema...")
+            return
+            
+        try:
+            # Obtener la clave del ecosistema
+            ecosystem_key = self.ecosystem_display_map.get(selected_display)
+            if not ecosystem_key:
+                return
+                
+            from core.ecosystems import get_ecosystem_by_key
+            ecosystem = get_ecosystem_by_key(ecosystem_key)
+            
+            if ecosystem:
+                info_text = f"🏢 {ecosystem.display_name}\n\n"
+                info_text += f"📋 Descripción:\n{ecosystem.description}\n\n"
+                info_text += f"📊 Entidades Maestras:\n"
+                for entity in ecosystem.master_entities:
+                    info_text += f"   • {entity}\n"
+                info_text += f"\n🗃️ Tablas Principales:\n"
+                for domain, tables in ecosystem.core_tables.items():
+                    for table in tables:
+                        info_text += f"   • {table} ({domain})\n"
+                info_text += f"\n🔧 Tablas de Soporte:\n"
+                for domain, tables in ecosystem.support_tables.items():
+                    for table in tables:
+                        info_text += f"   • {table} ({domain})\n"
+                info_text += f"\n📈 Tablas de Análisis:\n"
+                for domain, tables in ecosystem.analytics_tables.items():
+                    for table in tables:
+                        info_text += f"   • {table} ({domain})\n"
+                
+                # Calcular volumen estimado basado en volume_ratios
+                # Usar volumen específico del ecosistema; fallback al de tabla individual si existiera
+                try:
+                    base_volume = int(self.ecosystem_volume.get() or 1000)
+                except Exception:
+                    # Fallback defensivo: variable original para tablas individuales
+                    try:
+                        base_volume = int(self.row_count.get() or 1000)
+                    except Exception:
+                        base_volume = 1000
+                total_estimated_records = 0
+                table_volume_lines = []
+                for table, ratio in ecosystem.volume_ratios.items():
+                    table_volume = int(base_volume * ratio)
+                    total_estimated_records += table_volume
+                    table_volume_lines.append(f"   • {table}: {table_volume:,}")
+                info_text += f"\n💾 Volumen Total Estimado: {total_estimated_records:,} registros"
+                info_text += "\n📊 Distribución Estimada por Tabla:\n" + "\n".join(table_volume_lines)
+                
+                self.info_text.insert(tk.END, info_text)
+                
+        except Exception as e:
+            self.info_text.insert(tk.END, f"Error cargando información del ecosistema: {e}")
 
     def create_step2(self):
         """Crear el Paso 2: Configuración de Parámetros"""
@@ -177,6 +398,25 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                                    values=["csv", "json", "excel", "parquet"], state="readonly", width=15)
         format_combo.grid(row=1, column=4, padx=(10, 0), pady=5)
 
+        # ===== NUEVA SECCIÓN DE LOCALIZACIÓN =====
+        if LOCALIZATION_AVAILABLE:
+            localization_frame = ttk.LabelFrame(self.step2_frame, text="Configuración Regional", padding="10")
+            localization_frame.pack(fill=tk.X, pady=(20, 0))
+
+            # Fila 1: Idioma y Contexto Geográfico
+            ttk.Label(localization_frame, text="Idioma de Columnas:").grid(row=0, column=0, sticky=tk.W, pady=5)
+            language_combo = ttk.Combobox(localization_frame, textvariable=self.language,
+                                        values=["English", "Español"], state="readonly", width=12)
+            language_combo.grid(row=0, column=1, padx=(10, 20), pady=5)
+
+            ttk.Label(localization_frame, text="Referencia Geográfica:").grid(row=0, column=2, sticky=tk.W, pady=5)
+            
+            # Crear lista de opciones geográficas organizadas
+            geo_options = self._get_geographic_options()
+            geo_combo = ttk.Combobox(localization_frame, textvariable=self.geographic_context,
+                                    values=geo_options, state="readonly", width=20)
+            geo_combo.grid(row=0, column=3, padx=(10, 0), pady=5)
+
         # Preview
         preview_frame = ttk.LabelFrame(self.step2_frame, text="Preview (Opcional)", padding="10")
         preview_frame.pack(fill=tk.X, pady=(0, 20))
@@ -212,6 +452,11 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
         ttk.Checkbutton(gen_controls_frame, text="Aplicar SCD2 en generacion",
                        variable=self.scd2_enabled).pack(side=tk.LEFT, padx=(0, 20))
 
+        # Botón Nueva Sesión
+        new_session_button = ttk.Button(gen_controls_frame, text="Nueva Sesión",
+                  command=self.start_new_session_ui)
+        new_session_button.pack(side=tk.RIGHT, padx=(0, 10))
+
         # Botón START prominente
         start_button = ttk.Button(gen_controls_frame, text="START - Generar Dataset",
                   command=self.generate_dataset)
@@ -225,6 +470,10 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
 
         self.status_label = ttk.Label(generation_frame, text="Listo para generar datos")
         self.status_label.pack(pady=(5, 0))
+
+        # Información de sesión
+        self.session_info_label = ttk.Label(generation_frame, text="Sin sesión activa", foreground="gray")
+        self.session_info_label.pack(pady=(2, 0))
 
         # Navegación
         nav_frame = ttk.Frame(self.step2_frame)
@@ -436,12 +685,12 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
             self.table_description_map = {domain_tables.get(t, f"Tabla {t}"): t for t in tables}
             self.table_combo['values'] = table_options
             self.selected_table.set("")  # Limpiar selección anterior
-            self.columns_text.delete(1.0, tk.END)
-            self.columns_text.insert(tk.END, f"Selecciona una tabla del dominio '{domain}' para ver las columnas disponibles...")
+            self.info_text.delete(1.0, tk.END)
+            self.info_text.insert(tk.END, f"Selecciona una tabla del dominio '{domain}' para ver las columnas disponibles...")
         except Exception as e:
             self.table_combo['values'] = []
-            self.columns_text.delete(1.0, tk.END)
-            self.columns_text.insert(tk.END, f"Error cargando tablas del dominio '{domain}': {str(e)}")
+            self.info_text.delete(1.0, tk.END)
+            self.info_text.insert(tk.END, f"Error cargando tablas del dominio '{domain}': {str(e)}")
             messagebox.showwarning("Advertencia", f"Error cargando tablas del dominio {domain}: {str(e)}")
 
     def on_table_selected(self, event):
@@ -478,6 +727,9 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                 self.show_step(2)
             except Exception:
                 pass
+            self.continue_btn.configure(state='normal')
+        else:
+            self.continue_btn.configure(state='disabled')
 
     def show_table_columns(self, domain: str, table: str):
         """Mostrar las columnas disponibles para la tabla seleccionada"""
@@ -488,11 +740,11 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
             fields = schema.get("fields", {})
 
             # Limpiar área de texto
-            self.columns_text.delete(1.0, tk.END)
+            self.info_text.delete(1.0, tk.END)
 
             # Título
-            self.columns_text.insert(tk.END, f"Dominio: {domain.upper()}\n", "title")
-            self.columns_text.insert(tk.END, f"Tabla: {table}\n\n", "title")
+            self.info_text.insert(tk.END, f"Dominio: {domain.upper()}\n", "title")
+            self.info_text.insert(tk.END, f"Tabla: {table}\n\n", "title")
 
             # Campos comunes (siempre presentes)
             common_fields = [
@@ -508,31 +760,31 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                 "tags", "notes"
             ]
 
-            self.columns_text.insert(tk.END, "CAMPOS COMUNES (siempre incluidos):\n", "header")
+            self.info_text.insert(tk.END, "CAMPOS COMUNES (siempre incluidos):\n", "header")
             for field in common_fields:
-                self.columns_text.insert(tk.END, f"• {field}\n")
-            self.columns_text.insert(tk.END, "\n")
+                self.info_text.insert(tk.END, f"• {field}\n")
+            self.info_text.insert(tk.END, "\n")
 
             # Campos específicos de la tabla
             if fields:
-                self.columns_text.insert(tk.END, "CAMPOS ESPECIFICOS DE LA TABLA:\n", "header")
+                self.info_text.insert(tk.END, "CAMPOS ESPECIFICOS DE LA TABLA:\n", "header")
                 for field_name, field_config in fields.items():
                     field_type = field_config.get("type", "string")
                     description = field_config.get("description", "")
                     if description:
-                        self.columns_text.insert(tk.END, f"• {field_name} ({field_type}): {description}\n")
+                        self.info_text.insert(tk.END, f"• {field_name} ({field_type}): {description}\n")
                     else:
-                        self.columns_text.insert(tk.END, f"• {field_name} ({field_type})\n")
+                        self.info_text.insert(tk.END, f"• {field_name} ({field_type})\n")
             else:
-                self.columns_text.insert(tk.END, "No hay campos específicos definidos para esta tabla.\n")
+                self.info_text.insert(tk.END, "No hay campos específicos definidos para esta tabla.\n")
 
             # Configurar tags para formato
-            self.columns_text.tag_configure("title", font=("Arial", 12, "bold"), foreground="#1f77b4")
-            self.columns_text.tag_configure("header", font=("Arial", 10, "bold"), foreground="#2ca02c")
+            self.info_text.tag_configure("title", font=("Arial", 12, "bold"), foreground="#1f77b4")
+            self.info_text.tag_configure("header", font=("Arial", 10, "bold"), foreground="#2ca02c")
 
         except Exception as e:
-            self.columns_text.delete(1.0, tk.END)
-            self.columns_text.insert(tk.END, f"Error cargando esquema: {str(e)}")
+            self.info_text.delete(1.0, tk.END)
+            self.info_text.insert(tk.END, f"Error cargando esquema: {str(e)}")
             messagebox.showerror("Error", f"Error cargando esquema de la tabla: {str(e)}")
 
     def select_output_dir(self):
@@ -543,6 +795,9 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
 
     def generate_preview(self):
         """Generar preview de datos"""
+        # En modo ecosistema no se muestra popup: simplemente salir silenciosamente
+        if self.mode.get() == 'ecosystem':
+            return
         if not self.get_selected_domain() or not self.get_selected_table():
             messagebox.showerror("Error", "Selecciona un dominio y tabla primero")
             return
@@ -561,7 +816,25 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                 table = self.get_selected_table()
                 rows = self.preview_rows.get()
 
+                # Configurar contexto de localización si está disponible
+                if LOCALIZATION_AVAILABLE and hasattr(self, 'geographic_context') and self.geographic_context.get() != "Global":
+                    try:
+                        from core.engines.faker_engine import set_geographic_context
+                        context_key = self._get_context_key_from_display(self.geographic_context.get())
+                        set_geographic_context(context_key)
+                    except ImportError:
+                        pass  # Fallar silenciosamente si no está disponible
+                
+                # Generar datos
                 data = generate(domain, table, rows, error_profile=self.error_profile.get())
+                
+                # Aplicar traducciones si se seleccionó español y está disponible
+                if LOCALIZATION_AVAILABLE and hasattr(self, 'language') and self.language.get() == "Español":
+                    try:
+                        from core.localization.i18n import translate_complete_dataset
+                        data = translate_complete_dataset(data, "es")
+                    except ImportError:
+                        pass  # Fallar silenciosamente si no está disponible
 
                 # Mostrar resultados
                 self.root.after(0, lambda: self.show_preview_results(data))
@@ -605,14 +878,25 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
             self.preview_text.insert(tk.END, "No se generaron datos")
 
     def generate_dataset(self):
-        """Generar dataset completo"""
+        """Generar dataset completo (tabla individual o ecosistema)"""
+        mode = self.mode.get()
+        
+        if mode == "single":
+            return self.generate_single_table()
+        elif mode == "ecosystem":
+            return self.generate_ecosystem_complete()
+        else:
+            messagebox.showerror("Error", "Modo de generación no válido")
+
+    def generate_single_table(self):
+        """Generar tabla individual"""
         if not self.get_selected_domain() or not self.get_selected_table():
             messagebox.showerror("Error", "Selecciona un dominio y tabla primero")
             return
 
         # Actualizar barra de progreso
         self.progress_var.set(0)
-        self.status_label.config(text="Iniciando generación...")
+        self.status_label.config(text="Iniciando generación de tabla individual...")
 
         def generate_thread():
             try:
@@ -620,11 +904,31 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                 table = self.get_selected_table()
                 rows = self.row_count.get()
 
-                # Paso 1: Generar datos
+                # Paso 1: Configurar localización
+                self.root.after(0, lambda: self.status_label.config(text="Configurando localización..."))
+                self.root.after(0, lambda: self.progress_var.set(10))
+                
+                # Configurar contexto geográfico si está disponible
+                if LOCALIZATION_AVAILABLE and hasattr(self, 'geographic_context') and self.geographic_context.get() != "Global":
+                    try:
+                        from core.engines.faker_engine import set_geographic_context
+                        context_key = self._get_context_key_from_display(self.geographic_context.get())
+                        set_geographic_context(context_key)
+                    except ImportError:
+                        pass  # Fallar silenciosamente si no está disponible
+
                 self.root.after(0, lambda: self.status_label.config(text="Generando datos..."))
                 self.root.after(0, lambda: self.progress_var.set(20))
 
                 data = generate(domain, table, rows, error_profile=self.error_profile.get())
+                
+                # Aplicar traducciones si se seleccionó español y está disponible
+                if LOCALIZATION_AVAILABLE and hasattr(self, 'language') and self.language.get() == "Español":
+                    try:
+                        from core.localization.i18n import translate_complete_dataset
+                        data = translate_complete_dataset(data, "es")
+                    except ImportError:
+                        pass  # Fallar silenciosamente si no está disponible
 
                 # Paso 2: Aplicar SCD2 si está habilitado
                 if self.scd2_enabled.get():
@@ -636,28 +940,18 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                 self.root.after(0, lambda: self.status_label.config(text="Guardando archivo..."))
                 self.root.after(0, lambda: self.progress_var.set(60))
 
-                # Crear carpeta específica para la tabla
-                base_out_dir = Path(self.output_dir.get())
-                table_out_dir = base_out_dir / table
-                table_out_dir.mkdir(parents=True, exist_ok=True)
+                # Crear carpeta de sesión
+                session_folder = self.create_session_folder()
                 
                 format_ext = self.output_format.get()
-                out_file = table_out_dir / f"{domain}__{table}.{format_ext}"
+                out_file = session_folder / f"{domain}__{table}.{format_ext}"
 
-                # Guardar según el formato seleccionado
+                # Guardar archivo
                 df = pd.DataFrame(data)
-                
-                if format_ext == "csv":
-                    df.to_csv(out_file, index=False)
-                elif format_ext == "json":
-                    df.to_json(out_file, orient='records', indent=2)
-                elif format_ext == "excel":
-                    df.to_excel(out_file, index=False, engine='openpyxl')
-                elif format_ext == "parquet":
-                    df.to_parquet(out_file, index=False)
-                else:
-                    # Default to CSV
-                    df.to_csv(out_file, index=False)
+                self._save_dataframe(df, out_file, format_ext)
+
+                # Registrar tabla en la sesión
+                self.add_table_to_session(domain, table, out_file, len(data))
 
                 # Paso 4: Calcular métricas DQ
                 self.root.after(0, lambda: self.status_label.config(text="Calculando métricas DQ..."))
@@ -667,16 +961,221 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
 
                 # Paso 5: Finalizar
                 self.root.after(0, lambda: self.progress_var.set(100))
-                self.root.after(0, lambda: self.status_label.config(text="¡Generación completada!"))
+                self.root.after(0, lambda: self.status_label.config(text="¡Tabla generada exitosamente!"))
 
                 # Mostrar resultados
                 self.root.after(0, lambda: self.show_generation_results(data, dq_metrics, out_file))
 
             except Exception as e:
-                self.root.after(0, lambda: messagebox.showerror("Error", f"Error generando dataset: {str(e)}"))
+                self.root.after(0, lambda: messagebox.showerror("Error", f"Error generando tabla: {str(e)}"))
                 self.root.after(0, lambda: self.status_label.config(text="Error en generación"))
 
         threading.Thread(target=generate_thread, daemon=True).start()
+
+    # ================= Preferencias de Usuario =================
+    def _preferences_path(self) -> Path:
+        try:
+            return Path.home() / '.sintetizador_settings.json'
+        except Exception:
+            return Path('.') / '.sintetizador_settings.json'
+
+    def _load_preferences(self):  # ya definida más arriba en parche anterior, proteger duplicado
+        if hasattr(self, '_prefs_loaded_marker'):
+            return
+        self._prefs_loaded_marker = True
+        path = self._preferences_path()
+        if not path.exists():
+            return
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            saved_mode = data.get('last_mode')
+            if saved_mode in ('single','ecosystem'):
+                self.mode.set(saved_mode)
+            saved_ecosystem_key = data.get('last_ecosystem_key')
+            if saved_ecosystem_key:
+                from core.ecosystems import get_available_ecosystem_options
+                ecosystems = get_available_ecosystem_options()
+                display_name = ecosystems.get(saved_ecosystem_key)
+                if display_name:
+                    self.selected_ecosystem.set(display_name)
+            self.on_mode_changed()
+        except Exception:
+            pass
+
+    def _save_preferences(self):  # redefinida para asegurar existencia
+        data = {
+            'last_mode': self.mode.get(),
+            'last_ecosystem_key': None
+        }
+        if hasattr(self, 'ecosystem_display_map') and self.selected_ecosystem.get():
+            data['last_ecosystem_key'] = self.ecosystem_display_map.get(self.selected_ecosystem.get())
+        try:
+            with open(self._preferences_path(), 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
+    def generate_ecosystem_complete(self):
+        """Generar ecosistema completo de negocio"""
+        selected_display = self.selected_ecosystem.get()
+        if not selected_display:
+            messagebox.showerror("Error", "Selecciona un tipo de negocio primero")
+            return
+
+        if not ECOSYSTEMS_AVAILABLE:
+            messagebox.showerror("Error", "Sistema de ecosistemas no disponible")
+            return
+
+        # Actualizar barra de progreso
+        self.progress_var.set(0)
+        self.status_label.config(text="Iniciando generación de ecosistema...")
+
+        def generate_thread():
+            try:
+                # Obtener configuración
+                ecosystem_key = self.ecosystem_display_map.get(selected_display)
+                volume = self.ecosystem_volume.get()
+                apply_translation = (LOCALIZATION_AVAILABLE and 
+                                   hasattr(self, 'language') and 
+                                   self.language.get() == "Español")
+
+                # Estimar volumen total antes de generar para advertir
+                from core.ecosystems import get_ecosystem_by_key
+                eco_def = get_ecosystem_by_key(ecosystem_key)
+                est_total = 0
+                for t, r in eco_def.volume_ratios.items():
+                    try:
+                        est_total += int(volume * r)
+                    except Exception:
+                        pass
+                if est_total > 2_000_000:
+                    proceed = messagebox.askyesno(
+                        "Confirmación de Volumen",
+                        f"El volumen estimado es {est_total:,} registros (alto).\n\n¿Deseas continuar?"
+                    )
+                    if not proceed:
+                        self.root.after(0, lambda: self.status_label.config(text="Generación cancelada por el usuario"))
+                        return
+
+                # Paso 1: Configurar localización
+                self.root.after(0, lambda: self.status_label.config(text="Configurando localización..."))
+                self.root.after(0, lambda: self.progress_var.set(5))
+                
+                if LOCALIZATION_AVAILABLE and hasattr(self, 'geographic_context') and self.geographic_context.get() != "Global":
+                    try:
+                        from core.engines.faker_engine import set_geographic_context
+                        context_key = self._get_context_key_from_display(self.geographic_context.get())
+                        set_geographic_context(context_key)
+                    except ImportError:
+                        pass
+
+                # Paso 2: Generar ecosistema completo
+                self.root.after(0, lambda: self.status_label.config(text="Generando ecosistema completo..."))
+                self.root.after(0, lambda: self.progress_var.set(10))
+
+                ecosystem_data, summary = generate_ecosystem_data(ecosystem_key, volume, apply_translation)
+
+                # Paso 3: Crear carpeta de sesión
+                self.root.after(0, lambda: self.status_label.config(text="Organizando archivos..."))
+                self.root.after(0, lambda: self.progress_var.set(70))
+
+                session_folder = self.create_session_folder()
+                
+                # Guardar todas las tablas del ecosistema
+                format_ext = self.output_format.get()
+                saved_files = {}
+                
+                total_tables = len(ecosystem_data)
+                for i, (table_name, data) in enumerate(ecosystem_data.items()):
+                    if data:  # Solo guardar si hay datos
+                        progress = 70 + (i / max(total_tables,1)) * 20
+                        self.root.after(0, lambda p=progress, t=table_name: (
+                            self.progress_var.set(p),
+                            self.status_label.config(text=f"Guardando {t}...")
+                        ))
+                        
+                        out_file = session_folder / f"ecosystem__{table_name}.{format_ext}"
+                        df = pd.DataFrame(data)
+                        self._save_dataframe(df, out_file, format_ext)
+                        
+                        # Registrar en sesión
+                        self.add_table_to_session("ecosystem", table_name, out_file, len(data))
+                        saved_files[table_name] = out_file
+
+                # Paso 4: Guardar resumen del ecosistema
+                self.root.after(0, lambda: self.status_label.config(text="Guardando metadatos..."))
+                self.root.after(0, lambda: self.progress_var.set(95))
+
+                summary_file = session_folder / "ecosystem_summary.json"
+                with open(summary_file, 'w', encoding='utf-8') as f:
+                    json.dump(summary, f, indent=2, ensure_ascii=False)
+
+                # Paso 5: Finalizar
+                self.root.after(0, lambda: self.progress_var.set(100))
+                self.root.after(0, lambda: self.status_label.config(text="¡Ecosistema generado exitosamente!"))
+
+                # Mostrar resultados del ecosistema
+                self.root.after(0, lambda: self.show_ecosystem_results(ecosystem_data, summary, saved_files))
+
+            except Exception as e:
+                self.root.after(0, lambda: messagebox.showerror("Error", f"Error generando ecosistema: {str(e)}"))
+                self.root.after(0, lambda: self.status_label.config(text="Error en generación"))
+
+        threading.Thread(target=generate_thread, daemon=True).start()
+
+    def _save_dataframe(self, df: pd.DataFrame, out_file: Path, format_ext: str):
+        """Guardar DataFrame en el formato especificado"""
+        if format_ext == "csv":
+            df.to_csv(out_file, index=False)
+        elif format_ext == "json":
+            df.to_json(out_file, orient='records', indent=2)
+        elif format_ext == "excel":
+            df.to_excel(out_file, index=False, engine='openpyxl')
+        elif format_ext == "parquet":
+            df.to_parquet(out_file, index=False)
+        else:
+            # Default to CSV
+            df.to_csv(out_file, index=False)
+
+    def show_ecosystem_results(self, ecosystem_data: Dict, summary: Dict, saved_files: Dict):
+        """Mostrar resultados de la generación de ecosistema"""
+        # Resetear métricas (ya que son múltiples tablas)
+        self.metrics_labels["Completitud"].config(text="N/A")
+        self.metrics_labels["Duplicados"].config(text="N/A") 
+        self.metrics_labels["Unicidad"].config(text="N/A")
+        self.metrics_labels["Validez"].config(text="N/A")
+
+        # Mostrar información del ecosistema
+        result_text = f"🏢 ECOSISTEMA GENERADO EXITOSAMENTE!\n\n"
+        result_text += f"📋 Tipo: {summary['ecosystem_name']}\n"
+        result_text += f"📊 Total de tablas: {summary['total_tables']}\n"
+        result_text += f"📈 Total de registros: {summary['total_records']:,}\n"
+        result_text += f"📁 Carpeta: {self.session_folder.name if self.session_folder else 'N/A'}\n\n"
+
+        result_text += "📊 TABLAS GENERADAS:\n"
+        result_text += "="*50 + "\n"
+        
+        for table_name, record_count in summary['tables_summary'].items():
+            result_text += f"   📄 {table_name}: {record_count:,} registros\n"
+
+        result_text += f"\n🌐 Configuración:\n"
+        result_text += f"   🗣️ Idioma: {self.language.get() if hasattr(self, 'language') else 'N/A'}\n"
+        result_text += f"   🌍 Región: {self.geographic_context.get() if hasattr(self, 'geographic_context') else 'N/A'}\n"
+        result_text += f"   📊 Volumen base: {self.ecosystem_volume.get():,}\n"
+
+        self.results_text.delete(1.0, tk.END)
+        self.results_text.insert(tk.END, result_text)
+
+        # Guardar datos para descarga (usar la primera tabla como referencia)
+        first_table_data = next(iter(ecosystem_data.values()), [])
+        self.generated_data = first_table_data
+        
+        messagebox.showinfo("Éxito", 
+                          f"¡Ecosistema '{summary['ecosystem_name']}' generado!\n\n"
+                          f"📊 {summary['total_tables']} tablas creadas\n"
+                          f"📈 {summary['total_records']:,} registros totales\n"
+                          f"📁 Ubicación: {self.session_folder}")
 
     def show_generation_results(self, data, dq_metrics, out_file):
         """Mostrar resultados de la generación"""
@@ -716,10 +1215,92 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
 
         messagebox.showinfo("Éxito", f"Dataset generado correctamente!\nArchivo guardado en: {out_file}")
 
+    def create_session_folder(self):
+        """Crear carpeta única para la sesión actual"""
+        if not self.current_session_id:
+            # Generar ID único para la sesión
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            session_uuid = str(uuid.uuid4())[:8]
+            self.current_session_id = f"session_{timestamp}_{session_uuid}"
+            
+            # Actualizar UI
+            self.session_info_label.config(text=f"Sesión activa: {self.current_session_id}")
+        
+        # Crear carpeta de sesión
+        base_out_dir = Path(self.output_dir.get())
+        self.session_folder = base_out_dir / self.current_session_id
+        self.session_folder.mkdir(parents=True, exist_ok=True)
+        
+        # Crear archivo de metadatos de la sesión
+        session_metadata = {
+            "session_id": self.current_session_id,
+            "created_at": datetime.now().isoformat(),
+            "language": self.language.get(),
+            "geographic_context": self.geographic_context.get(),
+            "tables_generated": []
+        }
+        
+        metadata_file = self.session_folder / "session_metadata.json"
+        with open(metadata_file, 'w', encoding='utf-8') as f:
+            json.dump(session_metadata, f, indent=2, ensure_ascii=False)
+        
+        return self.session_folder
+
+    def add_table_to_session(self, domain: str, table: str, file_path: str, row_count: int):
+        """Agregar información de tabla generada a la sesión"""
+        if not self.session_folder:
+            return
+            
+        metadata_file = self.session_folder / "session_metadata.json"
+        
+        # Leer metadatos existentes
+        with open(metadata_file, 'r', encoding='utf-8') as f:
+            metadata = json.load(f)
+        
+        # Agregar nueva tabla
+        table_info = {
+            "domain": domain,
+            "table": table,
+            "file_path": str(file_path),
+            "row_count": row_count,
+            "generated_at": datetime.now().isoformat()
+        }
+        
+        metadata["tables_generated"].append(table_info)
+        
+        # Guardar metadatos actualizados
+        with open(metadata_file, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, indent=2, ensure_ascii=False)
+
+    def start_new_session(self):
+        """Iniciar una nueva sesión de generación"""
+        self.current_session_id = None
+        self.session_folder = None
+
+    def start_new_session_ui(self):
+        """Iniciar nueva sesión desde la UI"""
+        self.start_new_session()
+        
+        # Actualizar UI
+        self.session_info_label.config(text="Sin sesión activa")
+        
+        # Mostrar información sobre la nueva sesión
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        messagebox.showinfo("Nueva Sesión", 
+                          f"Nueva sesión iniciada.\n\n"
+                          f"Todas las tablas generadas a partir de ahora\n"
+                          f"se guardarán en una carpeta única.\n\n"
+                          f"Hora de inicio: {timestamp}")
+
     def open_results_folder(self):
         """Abrir la carpeta de resultados"""
-        output_dir = self.output_dir.get()
-        if not output_dir or not os.path.exists(output_dir):
+        # Si hay una sesión activa, abrir esa carpeta específica
+        if self.session_folder and self.session_folder.exists():
+            target_dir = str(self.session_folder)
+        else:
+            target_dir = self.output_dir.get()
+            
+        if not target_dir or not os.path.exists(target_dir):
             messagebox.showwarning("Advertencia", "No hay carpeta de resultados válida")
             return
             
@@ -728,11 +1309,11 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
             import sys
             
             if sys.platform == "win32":
-                os.startfile(output_dir)
+                os.startfile(target_dir)
             elif sys.platform == "darwin":
-                subprocess.call(["open", output_dir])
+                subprocess.call(["open", target_dir])
             else:
-                subprocess.call(["xdg-open", output_dir])
+                subprocess.call(["xdg-open", target_dir])
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo abrir la carpeta: {str(e)}")
 
@@ -781,12 +1362,28 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
             self.step1_frame.pack(fill=tk.BOTH, expand=True)
         elif step_num == 2:
             # Actualizar información de selección
-            domain = self.get_selected_domain()
-            table = self.get_selected_table()
-            if domain and table:
-                self.selection_info.config(text=f"Dominio: {domain} | Tabla: {table}")
+            if self.mode.get() == 'single':
+                domain = self.get_selected_domain()
+                table = self.get_selected_table()
+                if domain and table:
+                    self.selection_info.config(text=f"Dominio: {domain} | Tabla: {table}")
+                else:
+                    self.selection_info.config(text="Selecciona un dominio y tabla en el Paso 1")
+                # Asegurar que el frame de preview esté visible
+                try:
+                    if hasattr(self, 'preview_text'):
+                        self.preview_text.master.master.pack(fill=tk.X, pady=(0, 20))
+                except Exception:
+                    pass
             else:
-                self.selection_info.config(text="Selecciona un dominio y tabla en el Paso 1")
+                eco = self.selected_ecosystem.get() or '—'
+                self.selection_info.config(text=f"Ecosistema seleccionado: {eco} (preview deshabilitado)")
+                # Ocultar frame de preview si existe
+                try:
+                    if hasattr(self, 'preview_text'):
+                        self.preview_text.master.master.pack_forget()
+                except Exception:
+                    pass
 
             self.step2_frame.pack(fill=tk.BOTH, expand=True)
         elif step_num == 3:
@@ -797,6 +1394,88 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
             self.final_config.config(text=config_text)
 
             self.step3_frame.pack(fill=tk.BOTH, expand=True)
+
+    def _get_geographic_options(self) -> List[str]:
+        """Obtener opciones geográficas organizadas para el combobox"""
+        if not LOCALIZATION_AVAILABLE:
+            return ["Global"]
+        
+        try:
+            from core.localization.geographic_contexts import get_region_options
+            regions = get_region_options()
+            
+            options = []
+            
+            # Añadir Global primero
+            options.append("Global")
+            
+            # Añadir Latinoamérica
+            if "Latinoamérica" in regions:
+                options.append("--- Latinoamérica ---")
+                for country in regions["Latinoamérica"]:
+                    country_display = {
+                        "ecuador": "Ecuador",
+                        "colombia": "Colombia", 
+                        "mexico": "México",
+                        "argentina": "Argentina",
+                        "chile": "Chile",
+                        "peru": "Perú"
+                    }.get(country, country.title())
+                    options.append(country_display)
+            
+            # Añadir Europa
+            if "Europa" in regions:
+                options.append("--- Europa ---")
+                for country in regions["Europa"]:
+                    country_display = {
+                        "espana": "España",
+                        "francia": "Francia",
+                        "alemania": "Alemania", 
+                        "italia": "Italia"
+                    }.get(country, country.title())
+                    options.append(country_display)
+            
+            # Añadir Norteamérica
+            if "Norteamérica" in regions:
+                options.append("--- Norteamérica ---")
+                for country in regions["Norteamérica"]:
+                    country_display = {
+                        "usa": "Estados Unidos",
+                        "canada": "Canadá"
+                    }.get(country, country.title())
+                    options.append(country_display)
+                    
+            return options
+            
+        except Exception:
+            return ["Global", "Ecuador", "Colombia", "México", "España", "Estados Unidos"]
+
+    def _get_context_key_from_display(self, display_name: str) -> str:
+        """Convertir nombre mostrado a clave de contexto"""
+        mapping = {
+            "Global": "global",
+            "Ecuador": "ecuador",
+            "Colombia": "colombia", 
+            "México": "mexico",
+            "Argentina": "argentina",
+            "Chile": "chile",
+            "Perú": "peru",
+            "España": "espana",
+            "Francia": "francia",
+            "Alemania": "alemania",
+            "Italia": "italia", 
+            "Estados Unidos": "usa",
+            "Canadá": "canada"
+        }
+        return mapping.get(display_name, "global")
+
+    def _get_language_key_from_display(self, display_name: str) -> str:
+        """Convertir nombre de idioma mostrado a clave"""
+        mapping = {
+            "English": "en",
+            "Español": "es"
+        }
+        return mapping.get(display_name, "en")
 
 
 def main():
