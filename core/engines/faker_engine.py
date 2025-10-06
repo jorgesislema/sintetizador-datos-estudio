@@ -33,6 +33,8 @@ if _FAKE:
 # ===== CONFIGURACIÓN GLOBAL DE LOCALIZACIÓN =====
 _CURRENT_GEOGRAPHIC_CONTEXT = "global"
 _CURRENT_LANGUAGE = "en"
+_CURRENT_DATE_RANGE_START = None  # type: datetime | None
+_CURRENT_DATE_RANGE_END = None    # type: datetime | None
 
 def set_geographic_context(context_name: str):
     """Establecer el contexto geográfico global para la generación"""
@@ -52,6 +54,40 @@ def get_current_language() -> str:
     """Obtener el idioma actual"""
     return _CURRENT_LANGUAGE
 
+def set_date_range(start_ym: str | None, end_ym: str | None):
+    """Establecer un rango global de fechas para la generación de campos de fecha/hora.
+
+    Args:
+        start_ym: Cadena en formato 'YYYY-MM' o 'YYYY-MM-DD' (inicio inclusive) o None para limpiar.
+        end_ym: Cadena en formato 'YYYY-MM' o 'YYYY-MM-DD' (fin inclusive) o None para limpiar.
+    """
+    global _CURRENT_DATE_RANGE_START, _CURRENT_DATE_RANGE_END
+    if not start_ym or not end_ym:
+        _CURRENT_DATE_RANGE_START = None
+        _CURRENT_DATE_RANGE_END = None
+        return
+
+    def _parse(s: str) -> datetime:
+        s = s.strip()
+        try:
+            # Intentar YYYY-MM-DD
+            return datetime.fromisoformat(s).replace(tzinfo=UTC) if 'T' not in s else datetime.fromisoformat(s)
+        except Exception:
+            # Intentar YYYY-MM
+            try:
+                year, month = map(int, s.split('-')[:2])
+                return datetime(year, month, 1, tzinfo=UTC)
+            except Exception as e:  # pragma: no cover
+                raise ValueError(f"Fecha inválida para rango: {s}") from e
+
+    start_dt = _parse(start_ym)
+    end_dt = _parse(end_ym)
+    # Normalizar orden
+    if end_dt < start_dt:
+        start_dt, end_dt = end_dt, start_dt
+    _CURRENT_DATE_RANGE_START = start_dt
+    _CURRENT_DATE_RANGE_END = end_dt
+
 def _fake_or(default: str, attr: str) -> str:
     if _FAKE and hasattr(_FAKE, attr):
         return getattr(_FAKE, attr)()
@@ -67,18 +103,42 @@ def _rand_float(min_v=0, max_v=1000, nd=2):
     return round(random.uniform(min_v, max_v), nd)
 
 def _rand_date(days_back=365):
+    """Genera una fecha ISO. Si hay rango global, usarlo; si no, usar days_back relativo al ahora."""
+    if _CURRENT_DATE_RANGE_START and _CURRENT_DATE_RANGE_END:
+        start = _CURRENT_DATE_RANGE_START
+        end = _CURRENT_DATE_RANGE_END
+        # número de días entre ambos (inclusivo)
+        delta_days = max(0, (end.date() - start.date()).days)
+        pick = start + timedelta(days=random.randint(0, delta_days))
+        return pick.isoformat()
     base = datetime.now(UTC)
     return (base - timedelta(days=random.randint(0, days_back))).isoformat()
 
 def _rand_datetime_utc(days_back=365):
-    """Genera una fecha/hora UTC aleatoria"""
+    """Genera una fecha/hora UTC aleatoria respetando el rango global si está definido."""
+    if _CURRENT_DATE_RANGE_START and _CURRENT_DATE_RANGE_END:
+        start = _CURRENT_DATE_RANGE_START
+        end = _CURRENT_DATE_RANGE_END
+        total_seconds = max(0, int((end - start).total_seconds()))
+        # evitar cero segundos
+        offset = 0 if total_seconds == 0 else random.randint(0, total_seconds)
+        result = start + timedelta(seconds=offset)
+        return result.isoformat()
     base = datetime.now(UTC)
     delta_days = random.randint(-abs(days_back), abs(days_back))
     result = base + timedelta(days=delta_days, hours=random.randint(0, 23), minutes=random.randint(0, 59))
     return result.isoformat()
 
 def _rand_datetime_local():
-    """Genera una fecha/hora local aleatoria"""
+    """Genera una fecha/hora local aleatoria respetando el rango global si está definido."""
+    if _CURRENT_DATE_RANGE_START and _CURRENT_DATE_RANGE_END:
+        # Convertir a naive local de ser necesario
+        start = _CURRENT_DATE_RANGE_START
+        end = _CURRENT_DATE_RANGE_END
+        total_seconds = max(0, int((end - start).total_seconds()))
+        offset = 0 if total_seconds == 0 else random.randint(0, total_seconds)
+        result = (start + timedelta(seconds=offset)).replace(tzinfo=None)
+        return result.isoformat()
     base = datetime.now()
     delta_days = random.randint(-30, 30)
     result = base + timedelta(days=delta_days, hours=random.randint(0, 23), minutes=random.randint(0, 59))
