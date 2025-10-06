@@ -3,6 +3,7 @@ Aplicación de escritorio nativa para el Sintetizador de Datos
 Usando Tkinter para interfaz gráfica local
 """
 import os
+import calendar
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, scrolledtext
 import pandas as pd
@@ -58,6 +59,21 @@ class DataSynthesizerApp:
         # ===== NUEVAS VARIABLES DE LOCALIZACIÓN =====
         self.language = tk.StringVar(value="Español")
         self.geographic_context = tk.StringVar(value="Global")
+        
+        # ===== RANGO DE FECHAS GLOBAL (YYYY-MM) =====
+        # Por defecto: últimos 12 meses
+        try:
+            now = datetime.now()
+            self.date_from_year = tk.IntVar(value=now.year - 1)
+            self.date_from_month = tk.IntVar(value=now.month)
+            self.date_to_year = tk.IntVar(value=now.year)
+            self.date_to_month = tk.IntVar(value=now.month)
+        except Exception:
+            # Fallback conservador
+            self.date_from_year = tk.IntVar(value=2023)
+            self.date_from_month = tk.IntVar(value=1)
+            self.date_to_year = tk.IntVar(value=2024)
+            self.date_to_month = tk.IntVar(value=12)
         
         # ===== VARIABLES DE SESIÓN =====
         self.current_session_id = None
@@ -398,6 +414,28 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                                    values=["csv", "json", "excel", "parquet"], state="readonly", width=15)
         format_combo.grid(row=1, column=4, padx=(10, 0), pady=5)
 
+        # Fila 3: Rango de fechas global
+        ttk.Label(config_frame, text="Rango de Fechas (YYYY-MM):").grid(row=2, column=0, sticky=tk.W, pady=10)
+        date_range_frame = ttk.Frame(config_frame)
+        date_range_frame.grid(row=2, column=1, columnspan=4, sticky=tk.W)
+        
+        # Desde
+        ttk.Label(date_range_frame, text="Desde:").pack(side=tk.LEFT)
+        from_year = ttk.Spinbox(date_range_frame, from_=1970, to=2100, textvariable=self.date_from_year, width=6)
+        from_year.pack(side=tk.LEFT, padx=(5, 2))
+        from_month = ttk.Spinbox(date_range_frame, from_=1, to=12, textvariable=self.date_from_month, width=4)
+        from_month.pack(side=tk.LEFT, padx=(2, 10))
+        
+        # Hasta
+        ttk.Label(date_range_frame, text="Hasta:").pack(side=tk.LEFT)
+        to_year = ttk.Spinbox(date_range_frame, from_=1970, to=2100, textvariable=self.date_to_year, width=6)
+        to_year.pack(side=tk.LEFT, padx=(5, 2))
+        to_month = ttk.Spinbox(date_range_frame, from_=1, to=12, textvariable=self.date_to_month, width=4)
+        to_month.pack(side=tk.LEFT, padx=(2, 10))
+        
+        apply_date_btn = ttk.Button(date_range_frame, text="Aplicar Rango", command=self.apply_date_range)
+        apply_date_btn.pack(side=tk.LEFT, padx=(10, 0))
+
         # ===== NUEVA SECCIÓN DE LOCALIZACIÓN =====
         if LOCALIZATION_AVAILABLE:
             localization_frame = ttk.LabelFrame(self.step2_frame, text="Configuración Regional", padding="10")
@@ -483,6 +521,37 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                   command=lambda: self.show_step(1)).pack(side=tk.LEFT)
         ttk.Button(nav_frame, text="Ver Resultados",
                   command=lambda: self.show_step(3)).pack(side=tk.RIGHT)
+
+    def _apply_date_range_to_engine(self):
+        """Aplicar el rango de fechas global al motor faker_engine."""
+        try:
+            from core.engines.faker_engine import set_date_range
+        except ImportError:
+            return
+        y1 = int(self.date_from_year.get())
+        m1 = int(self.date_from_month.get())
+        y2 = int(self.date_to_year.get())
+        m2 = int(self.date_to_month.get())
+        # Normalizar y construir YYYY-MM-01 y fin de mes
+        if (y2, m2) < (y1, m1):
+            y1, m1, y2, m2 = y2, m2, y1, m1
+        start = f"{y1:04d}-{m1:02d}-01"
+        last_day = calendar.monthrange(y2, m2)[1]
+        end = f"{y2:04d}-{m2:02d}-{last_day:02d}"
+        set_date_range(start, end)
+
+    def apply_date_range(self):
+        """Validar y aplicar el rango de fechas desde la UI."""
+        try:
+            y1 = int(self.date_from_year.get()); m1 = int(self.date_from_month.get())
+            y2 = int(self.date_to_year.get()); m2 = int(self.date_to_month.get())
+            if not (1 <= m1 <= 12 and 1 <= m2 <= 12):
+                raise ValueError("Mes fuera de rango")
+        except Exception:
+            messagebox.showerror("Error", "Rango de fechas inválido. Use años válidos y meses 1-12.")
+            return
+        self._apply_date_range_to_engine()
+        messagebox.showinfo("Rango aplicado", "El rango de fechas ha sido aplicado para la generación.")
 
     def create_step3(self):
         """Crear el Paso 3: Resultados"""
@@ -824,6 +893,8 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                         set_geographic_context(context_key)
                     except ImportError:
                         pass  # Fallar silenciosamente si no está disponible
+                # Aplicar rango de fechas global
+                self._apply_date_range_to_engine()
                 
                 # Generar datos
                 data = generate(domain, table, rows, error_profile=self.error_profile.get())
@@ -919,6 +990,9 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
 
                 self.root.after(0, lambda: self.status_label.config(text="Generando datos..."))
                 self.root.after(0, lambda: self.progress_var.set(20))
+
+                # Aplicar rango de fechas global
+                self._apply_date_range_to_engine()
 
                 data = generate(domain, table, rows, error_profile=self.error_profile.get())
                 
@@ -1074,6 +1148,9 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                 self.root.after(0, lambda: self.status_label.config(text="Generando ecosistema completo..."))
                 self.root.after(0, lambda: self.progress_var.set(10))
 
+                # Aplicar rango de fechas global
+                self._apply_date_range_to_engine()
+
                 ecosystem_data, summary = generate_ecosystem_data(ecosystem_key, volume, apply_translation)
 
                 # Paso 3: Crear carpeta de sesión
@@ -1163,6 +1240,7 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
         result_text += f"   🗣️ Idioma: {self.language.get() if hasattr(self, 'language') else 'N/A'}\n"
         result_text += f"   🌍 Región: {self.geographic_context.get() if hasattr(self, 'geographic_context') else 'N/A'}\n"
         result_text += f"   📊 Volumen base: {self.ecosystem_volume.get():,}\n"
+        result_text += f"   📆 Rango de fechas: {int(self.date_from_year.get()):04d}-{int(self.date_from_month.get()):02d} a {int(self.date_to_year.get()):04d}-{int(self.date_to_month.get()):02d}\n"
 
         self.results_text.delete(1.0, tk.END)
         self.results_text.insert(tk.END, result_text)
@@ -1191,6 +1269,7 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
         result_text += f"Archivo: {out_file}\n"
         result_text += f"Filas generadas: {len(data)}\n"
         result_text += f"Columnas: {len(data[0]) if data else 0}\n\n"
+        result_text += f"Configuración temporal: {int(self.date_from_year.get()):04d}-{int(self.date_from_month.get()):02d} a {int(self.date_to_year.get()):04d}-{int(self.date_to_month.get()):02d}\n\n"
 
         result_text += "Reporte de Calidad de Datos:\n"
         result_text += "="*40 + "\n"
@@ -1237,6 +1316,10 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
             "created_at": datetime.now().isoformat(),
             "language": self.language.get(),
             "geographic_context": self.geographic_context.get(),
+            "date_range": {
+                "from": f"{int(self.date_from_year.get()):04d}-{int(self.date_from_month.get()):02d}",
+                "to": f"{int(self.date_to_year.get()):04d}-{int(self.date_to_month.get()):02d}"
+            },
             "tables_generated": []
         }
         
@@ -1390,7 +1473,8 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
             # Actualizar configuración final
             config_text = f"Dominio: {self.get_selected_domain()} | Tabla: {self.get_selected_table()}\n"
             config_text += f"Filas: {self.row_count.get()} | Errores: {self.error_profile.get()}\n"
-            config_text += f"Salida: {self.output_dir.get()} | Formato: {self.output_format.get()}"
+            config_text += f"Salida: {self.output_dir.get()} | Formato: {self.output_format.get()}\n"
+            config_text += f"Rango de fechas: {int(self.date_from_year.get()):04d}-{int(self.date_from_month.get()):02d} a {int(self.date_to_year.get()):04d}-{int(self.date_to_month.get()):02d}"
             self.final_config.config(text=config_text)
 
             self.step3_frame.pack(fill=tk.BOTH, expand=True)
