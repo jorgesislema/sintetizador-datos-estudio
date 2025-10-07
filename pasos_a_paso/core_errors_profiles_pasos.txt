@@ -1,0 +1,64 @@
+Paso a paso - Implementación de Perfiles de Error en core/errors/profiles.py
+
+1. Objetivo: Reemplazar inyección simple de errores (error_pct) por perfiles configurables que simulen diferentes niveles de calidad de datos (nulls, duplicados, typos, out-of-range).
+
+2. Archivo principal creado: core/errors/profiles.py
+   - Define perfiles predefinidos: none, light, moderate, heavy
+   - Funciones específicas para cada tipo de error:
+     - apply_null_errors: Inyecta valores null aleatorios
+     - apply_duplicate_errors: Duplica valores en campos clave
+     - apply_typo_errors: Introduce errores tipográficos en strings
+     - apply_out_of_range_errors: Hace valores numéricos fuera de rango
+     - apply_error_profile: Aplica perfil completo
+
+3. Cambios en core/generators.py:
+   - Firma de función cambiada: error_pct -> error_profile
+   - Lógica de inyección movida después de generar todas las filas
+   - Actualización de processing_status basada en presencia de nulls
+   - Integración con apply_error_profile
+
+4. Cambios en apps/cli/main.py:
+   - Parámetros CLI actualizados: --error-pct -> --error-profile
+   - Funciones preview, generate, generate-scd2, generate-multi actualizadas
+   - Soporte para perfiles en comandos multi-tabla
+
+5. Cambios en core/multi.py:
+   - Parámetro error_profile añadido a generate_two_tables
+   - Propagación de perfil a ambas tablas generadas
+
+6. Cambios en apps/ui-desktop/:
+   - app.py: Selector de perfil en lugar de slider de porcentaje
+   - state.py: error_profile en lugar de error_pct
+   - Texto informativo actualizado
+
+7. Cambios en tests/test_generators.py:
+   - Test añadido: test_error_profiles() valida funcionamiento de perfiles
+
+8. Cambios en README.md:
+   - Ejemplos CLI actualizados con --error-profile
+   - Nueva sección "Perfiles de Error" con descripción detallada
+   - Notas sobre tipos de errores incluidos
+
+9. Validación:
+   - Tests pasan (4/4)
+   - CLI preview con --error-profile light muestra errores inyectados correctamente
+   - Timestamps ahora incluyen zona horaria (+00:00)
+   - processing_status cambia a "warn" cuando hay errores
+   - Métricas DQ reflejan reducción de completitud
+
+10. Beneficios de la implementación:
+    - Más realista: Simula patrones de error del mundo real
+    - Configurable: Perfiles predefinidos para diferentes escenarios
+    - Extensible: Fácil añadir nuevos tipos de error o perfiles personalizados
+    - Consistente: Aplicación uniforme en CLI, UI y generación multi-tabla
+
+11. Limitaciones actuales:
+    - Perfiles fijos (no configurables por campo específico)
+    - Tipos de error limitados (podrían añadirse más: formato fechas, rangos específicos)
+    - No hay validación de tipos de campo antes de aplicar errores
+
+12. Próximos pasos sugeridos:
+    - Configuración YAML de perfiles por dominio/tabla
+    - Más tipos de error (formato fechas, patrones regex)
+    - Validación de tipos antes de inyección
+    - Perfiles personalizados desde UI
