@@ -1,0 +1,29 @@
+Paso a paso - Ampliación de campos comunes en core/generators.py
+
+1. Objetivo: Enriquecer el generador genérico con un conjunto extendido de campos comunes (multi-dominio) y preparar placeholders para futuras capas (SCD2, geo, FX, PII).
+2. Archivo modificado: core/generators.py
+3. Cambios clave:
+   - Importadas utilidades sample_city (geo) y get_fx_rate (fx).
+   - Añadidos campos: natural_key, tenant_id, source_system, source_table, is_active, valid_from_utc, valid_to_utc, created_at_utc, created_by, updated_at_utc, updated_by, pii_sensitivity, geo_* (country, region, city, lat, lon), currency_code, fx_rate_to_usd, tags, notes.
+   - Se mantiene compatibilidad con campos previos (id, batch_* , processing_status, dq_* , record_hash).
+   - natural_key heurística: prioridad employee_id / transaction_id / ticket_id / id.
+   - Reutilización de una sola ciudad por lote (optimización simple) -> posible mejora futura: variabilidad por fila.
+4. Inyección de errores: Sin cambios salvo que ahora no afecta nuevos campos agregados explícitamente (no exclusión especial añadida).
+5. DQ: Se calcula completeness sobre fields definidos en el schema (no incluye obligatoriamente todos los nuevos campos si no están en el YAML). Futuro: armonizar lista de campos DQ para incluir comunes extendidos.
+6. Test actualizado (tests/test_generators.py) para verificar presencia de campos añadidos y rangos de métricas DQ.
+7. Limitaciones actuales:
+   - valid_to_utc fijo en None (pendiente lógica SCD2 real).
+   - fx_rate_to_usd siempre 1.0 (USD vs USD) -> pendiente soportar otras monedas y referencias por fila.
+   - geo_* constante en todo el lote (pendiente rotación o parametrización).
+   - pii_sensitivity placeholder 'low'.
+   - tags / notes = None (pendiente reglas generativas opcionales).
+8. Próximos pasos sugeridos:
+   - Introducir configuración para moneda/país por dominio o tabla.
+   - Incorporar versionado SCD2: al regenerar, alternar is_active y asignar valid_to_utc.
+   - Ajustar profiler para incluir validación semántica (geo lat/lon rango, fx_rate numérico positivo).
+   - Añadir flag CLI para variar geo/currency.
+9. Verificación manual recomendada:
+   - Ejecutar CLI: `synthedata preview hr_core employees --rows 2` y confirmar campos.
+   - Ejecutar tests: `pytest -k generators`.
+10. Consideraciones de compatibilidad: Campos añadidos mediante setdefault no rompen esquemas existentes; los YAML pueden no listar todos los campos comunes pero se agregan dinámicamente.
+11. Corrección posterior: processing_status aparecía como None porque faker_engine devolvía None para campos desconocidos y setdefault no sobrescribía; se cambió a comprobación explícita if base.get('processing_status') is None.
