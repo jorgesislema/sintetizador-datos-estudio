@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "synthedata-suite"
+version = "0.1.0"
+authors = [ {name = "Autor", email = "autor@example.com"} ]
+description = "Generador de datos sintéticos híbrido (stub inicial)"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+dependencies = [
+  "numpy",
+  "pandas",
+  "faker",
+  "pyyaml",
+  "typer",
+  "rich",
+  "pyarrow",
+]
+
+[project.optional-dependencies]
+engines-ml = ["sdv", "ctgan"]
+ui = ["streamlit"]
+extras = ["duckdb", "mesa", "plaitpy", "scikit-learn", "polars"]
+full = ["sdv", "ctgan", "duckdb", "mesa", "plaitpy", "scikit-learn", "polars", "streamlit"]
+
+[project.scripts]
+synthedata = "apps.cli.main:app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
