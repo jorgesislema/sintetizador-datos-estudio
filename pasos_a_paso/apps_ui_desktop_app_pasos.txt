@@ -1,0 +1,43 @@
+Paso a paso: Integración de Rango de Fechas (YYYY-MM)
+
+1) Variables de estado
+- Se añadieron variables en el constructor de DataSynthesizerApp:
+  - self.date_from_year, self.date_from_month, self.date_to_year, self.date_to_month
+  - Default: últimos 12 meses (o valores de respaldo 2023-01 a 2024-12)
+
+2) UI en Paso 2
+- En create_step2() se añadió una fila (Fila 3) con controles Spinbox para seleccionar el rango:
+  - Desde: año y mes
+  - Hasta: año y mes
+  - Botón "Aplicar Rango"
+
+3) Lógica de aplicación del rango
+- Se agregó _apply_date_range_to_engine() que:
+  - Normaliza el orden (si el Hasta < Desde los intercambia)
+  - Construye start=YYYY-MM-01 y end=YYYY-MM-último_día usando calendar.monthrange
+  - Llama core.engines.faker_engine.set_date_range(start, end)
+- Se agregó apply_date_range() que valida entrada y llama al helper anterior, mostrando diálogos de feedback.
+
+4) Integración con generación
+- generate_preview(): antes de generate(), llama _apply_date_range_to_engine().
+- generate_single_table(): antes de generate(), llama _apply_date_range_to_engine().
+- generate_ecosystem_complete(): antes de generate_ecosystem_data(), llama _apply_date_range_to_engine().
+
+5) Persistencia y resultados
+- En create_session_folder() se añadió la clave date_range en session_metadata.json con formato {from: YYYY-MM, to: YYYY-MM}.
+- Se muestran los valores del rango en:
+  - show_ecosystem_results(): línea de configuración con el rango.
+  - show_generation_results(): añade "Configuración temporal" con el rango.
+  - Paso 3 (final_config): añade línea "Rango de fechas".
+
+6) Motor faker_engine
+- Ya existía set_date_range(start_ym, end_ym) y los generadores de fecha/hora (_rand_date, _rand_datetime_utc, _rand_datetime_local) respetan el rango cuando está definido.
+
+7) Validación
+- Se corrigieron problemas de indentación introducidos durante el parcheo.
+- Se validó ausencia de errores con la herramienta de análisis de errores.
+
+8) Próximos pasos
+- Probar end-to-end con una tabla que tenga campos de fecha para verificar que todas las fechas caen dentro del rango.
+- (Opcional) Añadir controles de año/mes con listas desplegables predefinidas y validación extra para UX.
+- (Opcional) Resaltar en la UI cuando el rango aplicado no cubre el hoy.
