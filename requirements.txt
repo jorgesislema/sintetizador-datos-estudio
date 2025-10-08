@@ -1,0 +1,8 @@
+faker
+numpy
+pandas
+pyarrow
+typer
+rich
+pyyaml
+pytest
