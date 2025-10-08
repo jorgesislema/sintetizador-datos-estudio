@@ -1,0 +1,7 @@
+sdv
+ctgan
+duckdb
+mesa
+plaitpy
+scikit-learn
+polars
