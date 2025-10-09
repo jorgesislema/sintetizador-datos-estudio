@@ -1,0 +1,343 @@
+tables:
+  # ===== DIMENSIONES (CATÁLOGOS) =====
+  
+  dim_platform:
+    fields:
+      - "*common_fields"
+      - platform_id
+      - platform_name
+      - api_source
+      - url_base
+      - tz_default
+      - data_freshness_sla
+      - notes
+
+  dim_channel:
+    fields:
+      - "*common_fields"
+      - channel_id
+      - platform_id
+      - handle
+      - channel_name
+      - niche_topic
+      - lang
+      - country
+      - join_date
+      - subs_current
+      - status
+
+  dim_content:
+    fields:
+      - "*common_fields"
+      - content_id
+      - platform_id
+      - channel_id
+      - content_type
+      - title
+      - title_tokens_json
+      - description_len
+      - duration_s
+      - aspect_ratio
+      - topic_taxonomy_id
+      - hashtags_json
+      - tags_json
+      - publish_ts_utc
+      - thumbnail_id
+      - collab_flag
+      - series_id
+      - evergreen_flag
+
+  dim_topic_taxonomy:
+    fields:
+      - "*common_fields"
+      - topic_taxonomy_id
+      - level1
+      - level2
+      - level3
+      - keywords_json
+
+  dim_hashtag:
+    fields:
+      - "*common_fields"
+      - hashtag_id
+      - hashtag_text
+      - category
+
+  br_content_hashtag:
+    fields:
+      - "*common_fields"
+      - content_id
+      - hashtag_id
+
+  dim_thumbnail_variant:
+    fields:
+      - "*common_fields"
+      - thumbnail_id
+      - content_id
+      - variant_code
+      - style
+      - main_color
+      - text_len
+      - face_detected_flag
+
+  dim_title_variant:
+    fields:
+      - "*common_fields"
+      - title_variant_id
+      - content_id
+      - variant_code
+      - sentiment
+      - word_count
+      - clickbait_score
+
+  dim_experiment:
+    fields:
+      - "*common_fields"
+      - experiment_id
+      - objective
+      - hypothesis
+      - start_ts_utc
+      - end_ts_utc
+      - status
+      - owner
+
+  dim_schedule_slot:
+    fields:
+      - "*common_fields"
+      - slot_id
+      - dow
+      - hour_local
+      - is_peak_flag
+      - historical_avg_ctr_pct
+      - historical_watch_time_s
+
+  # ===== HECHOS (MÉTRICAS Y EVENTOS) =====
+  
+  fact_content_performance_day:
+    fields:
+      - "*common_fields"
+      - content_id
+      - date
+      - platform_id
+      - impressions
+      - views
+      - unique_viewers
+      - avg_view_duration_s
+      - avg_percentage_viewed_pct
+      - retention_30s_pct
+      - retention_60s_pct
+      - retention_50pct_mark_s
+      - watch_time_min
+      - likes
+      - comments
+      - shares
+      - saves
+      - dislikes
+      - ctr_thumb_pct
+      - end_screen_clicks
+      - card_clicks
+      - subs_gained
+      - subs_lost
+      - revenue_ad_usd
+      - rpm_usd
+      - cpm_usd
+
+  fact_retention_curve:
+    fields:
+      - "*common_fields"
+      - content_id
+      - second_mark
+      - viewers_remaining_pct
+      - drop_delta_pct
+      - key_moment_flag
+
+  fact_traffic_source_day:
+    fields:
+      - "*common_fields"
+      - content_id
+      - date
+      - source
+      - impressions
+      - views
+      - watch_time_min
+      - ctr_pct
+
+  fact_audience_day:
+    fields:
+      - "*common_fields"
+      - channel_id
+      - date
+      - subs_total
+      - subs_gained
+      - subs_lost
+      - unique_viewers
+      - returning_viewers
+      - new_viewers
+      - gender_mix_json
+      - age_brackets_json
+      - geo_top_json
+      - device_mix_json
+
+  fact_pacing_launch:
+    fields:
+      - "*common_fields"
+      - content_id
+      - hour_since_publish
+      - impressions
+      - views
+      - watch_time_min
+      - ctr_pct
+      - retention_30s_pct
+
+  fact_thumbnail_tests:
+    fields:
+      - "*common_fields"
+      - content_id
+      - thumbnail_id
+      - date
+      - impressions
+      - views
+      - ctr_pct
+      - watch_time_min
+      - uplift_ctr_pct
+      - winner_flag
+
+  fact_title_tests:
+    fields:
+      - "*common_fields"
+      - content_id
+      - title_variant_id
+      - date
+      - ctr_pct
+      - avg_view_duration_s
+      - uplift_ctr_pct
+      - winner_flag
+
+  fact_comments_nlp:
+    fields:
+      - "*common_fields"
+      - content_id
+      - date
+      - comments_count
+      - sentiment_avg
+      - topics_json
+      - toxicity_rate_pct
+      - questions_count
+      - suggestions_count
+
+  fact_posting_schedule_adherence:
+    fields:
+      - "*common_fields"
+      - content_id
+      - planned_slot_id
+      - posted_ts_local
+      - delay_min
+      - within_peak_flag
+
+  fact_competitive_benchmark:
+    fields:
+      - "*common_fields"
+      - competitor_content_id
+      - date
+      - competitor_channel
+      - topic
+      - views
+      - velocity_views_24h
+      - ctr_proxy_pct
+      - avg_duration_proxy_s
+
+  fact_recommendations:
+    fields:
+      - "*common_fields"
+      - recommendation_id
+      - channel_id
+      - content_id
+      - date
+      - category
+      - action_text
+      - expected_uplift_metric
+      - expected_uplift_pct
+      - priority
+      - owner
+      - due_date
+      - status
+
+  fact_reports_artifacts:
+    fields:
+      - "*common_fields"
+      - report_id
+      - channel_id
+      - date
+      - report_type
+      - storage_uri
+      - summary_md
+
+  # ===== GESTIÓN DE PROYECTOS =====
+  
+  dim_project:
+    fields:
+      - "*common_fields"
+      - project_id
+      - client_id
+      - scope
+      - start_date
+      - end_date
+      - pricing_model
+      - status
+
+  fact_project_timeline:
+    fields:
+      - "*common_fields"
+      - project_id
+      - milestone_date
+      - milestone_name
+      - status
+      - notes
+
+  fact_deliverables:
+    fields:
+      - "*common_fields"
+      - project_id
+      - deliverable_type
+      - delivered_date
+      - storage_uri
+      - acceptance_status
+
+  fact_meetings:
+    fields:
+      - "*common_fields"
+      - project_id
+      - meeting_ts_utc
+      - attendees_json
+      - agenda_md
+      - outcomes_md
+      - next_actions_json
+
+  # ===== INGESTA RAW (TRAZABILIDAD) =====
+  
+  raw_youtube_analytics:
+    fields:
+      - "*common_fields"
+      - payload_json
+      - pulled_ts_utc
+      - api_endpoint
+      - rate_limit_ms
+      - schema_version
+
+  raw_tiktok_analytics:
+    fields:
+      - "*common_fields"
+      - payload_json
+      - pulled_ts_utc
+      - api_endpoint
+      - rate_limit_ms
+      - schema_version
+
+  raw_instagram_insights:
+    fields:
+      - "*common_fields"
+      - payload_json
+      - pulled_ts_utc
+      - api_endpoint
+      - rate_limit_ms
+      - schema_version
