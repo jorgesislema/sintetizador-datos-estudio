@@ -1,0 +1,461 @@
+tables:
+  # =======================================================
+  # K-12 COMERCIAL (B2C) - Colegios Privados
+  # =======================================================
+  
+  # Dimensiones K-12
+  dim_lead:
+    fields:
+      - "*common_fields"
+      - lead_id
+      - parent_first_name
+      - parent_last_name
+      - parent_email
+      - parent_phone
+      - student_first_name
+      - student_last_name
+      - student_birth_date
+      - grade_level
+      - school_interest
+      - lead_source
+      - lead_status
+      - inquiry_date
+      - follow_up_date
+      - assigned_counselor
+      - location_preference
+      - budget_range
+      - special_needs
+      - languages_spoken
+      - previous_school_type
+
+  dim_school_program:
+    fields:
+      - "*common_fields"
+      - program_id
+      - program_name
+      - program_type
+      - grade_levels_served
+      - curriculum_type
+      - language_instruction
+      - tuition_annual
+      - application_fee
+      - program_capacity
+      - current_enrollment
+      - waiting_list_count
+      - accreditation_status
+      - facilities_included
+      - extracurricular_options
+
+  dim_parent:
+    fields:
+      - "*common_fields"
+      - parent_id
+      - first_name
+      - last_name
+      - email
+      - phone_primary
+      - phone_secondary
+      - address_line1
+      - address_line2
+      - city
+      - state_province
+      - postal_code
+      - country
+      - occupation
+      - employer
+      - income_range
+      - education_level
+      - marital_status
+      - number_of_children
+      - preferred_communication
+      - emergency_contact_name
+      - emergency_contact_phone
+
+  # Hechos K-12
+  fact_pipeline_enrollment:
+    fields:
+      - "*common_fields"
+      - enrollment_id
+      - lead_id
+      - program_id
+      - student_id
+      - application_date
+      - admission_decision_date
+      - enrollment_confirmed_date
+      - start_date
+      - academic_year
+      - semester_term
+      - application_status
+      - admission_test_score
+      - interview_score
+      - recommendation_score
+      - financial_aid_requested
+      - financial_aid_approved
+      - scholarship_amount
+      - deposit_paid
+      - tuition_balance
+      - payment_plan_selected
+
+  fact_finance_k12:
+    fields:
+      - "*common_fields"
+      - transaction_id
+      - student_id
+      - parent_id
+      - invoice_id
+      - transaction_date
+      - due_date
+      - payment_date
+      - transaction_type
+      - transaction_category
+      - amount_due
+      - amount_paid
+      - payment_method
+      - payment_status
+      - late_fee_amount
+      - discount_amount
+      - academic_year
+      - semester_term
+      - description
+      - processed_by_staff
+
+  # =======================================================
+  # EDTECH B2B - Venta a Instituciones Educativas
+  # =======================================================
+
+  # Dimensiones EdTech B2B
+  dim_account_school:
+    fields:
+      - "*common_fields"
+      - account_id
+      - school_name
+      - school_type
+      - district_name
+      - school_level
+      - total_students
+      - total_teachers
+      - total_staff
+      - address_line1
+      - address_line2
+      - city
+      - state_province
+      - postal_code
+      - country
+      - phone
+      - email
+      - website
+      - principal_name
+      - principal_email
+      - tech_coordinator_name
+      - tech_coordinator_email
+      - procurement_contact_name
+      - procurement_contact_email
+      - annual_budget_technology
+      - current_lms_platform
+      - internet_bandwidth
+      - device_inventory_count
+      - account_status
+      - contract_start_date
+      - contract_end_date
+      - sales_rep_assigned
+
+  dim_software_product:
+    fields:
+      - "*common_fields"
+      - product_id
+      - product_name
+      - product_category
+      - product_description
+      - target_age_group
+      - subject_areas
+      - license_type
+      - pricing_model
+      - price_per_license
+      - minimum_licenses
+      - maximum_licenses
+      - technical_requirements
+      - integration_capabilities
+      - training_included
+      - support_level
+      - trial_period_days
+      - implementation_time
+      - certification_offered
+
+  # Hechos EdTech B2B
+  fact_licenses_usage:
+    fields:
+      - "*common_fields"
+      - usage_id
+      - account_id
+      - product_id
+      - license_id
+      - usage_date
+      - user_type
+      - session_duration_minutes
+      - features_accessed
+      - activities_completed
+      - assessments_taken
+      - content_created
+      - content_shared
+      - login_method
+      - device_type
+      - browser_type
+      - location_accessed
+      - peak_concurrent_users
+      - data_exported
+      - support_tickets_created
+
+  fact_sales_pipeline_b2b:
+    fields:
+      - "*common_fields"
+      - opportunity_id
+      - account_id
+      - product_id
+      - lead_source
+      - opportunity_stage
+      - probability_percentage
+      - deal_value
+      - license_quantity
+      - contract_length_months
+      - decision_maker_name
+      - decision_maker_role
+      - demo_date
+      - trial_start_date
+      - trial_end_date
+      - proposal_sent_date
+      - negotiation_start_date
+      - close_date
+      - won_lost_reason
+      - competitor_involved
+      - sales_rep_id
+      - sales_cycle_days
+
+  # =======================================================
+  # EDUCACIÓN SUPERIOR - Universidades/Colleges
+  # =======================================================
+
+  # Dimensiones Higher Education
+  dim_student:
+    fields:
+      - "*common_fields"
+      - student_id
+      - first_name
+      - last_name
+      - email
+      - phone
+      - birth_date
+      - gender
+      - ethnicity
+      - citizenship_status
+      - address_line1
+      - address_line2
+      - city
+      - state_province
+      - postal_code
+      - country
+      - emergency_contact_name
+      - emergency_contact_phone
+      - admission_date
+      - graduation_date
+      - student_status
+      - enrollment_type
+      - academic_level
+      - major_primary
+      - major_secondary
+      - minor_field
+      - advisor_faculty_id
+      - cumulative_gpa
+      - credit_hours_completed
+      - credit_hours_attempted
+      - financial_aid_status
+      - work_study_eligible
+      - housing_status
+      - meal_plan_type
+
+  dim_course:
+    fields:
+      - "*common_fields"
+      - course_id
+      - course_code
+      - course_title
+      - course_description
+      - department
+      - school_college
+      - credit_hours
+      - course_level
+      - prerequisites
+      - corequisites
+      - course_format
+      - instruction_method
+      - max_enrollment
+      - lab_required
+      - field_work_required
+      - internship_component
+      - certification_prep
+      - transferable_credits
+      - repeatable
+      - pass_fail_option
+      - honors_section
+      - writing_intensive
+
+  dim_faculty:
+    fields:
+      - "*common_fields"
+      - faculty_id
+      - first_name
+      - last_name
+      - email
+      - phone
+      - office_location
+      - department
+      - title_rank
+      - employment_status
+      - hire_date
+      - tenure_status
+      - highest_degree
+      - specialization_area
+      - research_interests
+      - office_hours
+      - teaching_load
+      - administrative_roles
+      - committee_memberships
+      - publication_count
+      - grant_funding_total
+      - sabbatical_eligible
+
+  dim_semester:
+    fields:
+      - "*common_fields"
+      - semester_id
+      - academic_year
+      - term_name
+      - term_code
+      - start_date
+      - end_date
+      - registration_start_date
+      - registration_end_date
+      - add_drop_deadline
+      - withdrawal_deadline
+      - final_exam_start
+      - final_exam_end
+      - graduation_date
+      - term_status
+      - credit_hour_limit
+      - part_time_threshold
+      - full_time_threshold
+
+  # Hechos Higher Education
+  fact_grades:
+    fields:
+      - "*common_fields"
+      - grade_id
+      - student_id
+      - course_id
+      - faculty_id
+      - semester_id
+      - section_number
+      - enrollment_date
+      - grade_letter
+      - grade_points
+      - credit_hours
+      - grade_status
+      - attempt_number
+      - withdrawal_date
+      - incomplete_date
+      - grade_change_date
+      - grade_change_reason
+      - midterm_grade
+      - final_exam_score
+      - final_project_score
+      - participation_score
+      - attendance_percentage
+
+  fact_enrollment:
+    fields:
+      - "*common_fields"
+      - enrollment_id
+      - student_id
+      - course_id
+      - faculty_id
+      - semester_id
+      - section_number
+      - enrollment_date
+      - enrollment_status
+      - credit_hours
+      - enrollment_method
+      - waitlist_position
+      - registration_priority
+      - tuition_amount
+      - fees_amount
+      - financial_aid_applied
+      - payment_status
+      - add_drop_count
+      - last_attendance_date
+
+  fact_student_financials:
+    fields:
+      - "*common_fields"
+      - financial_record_id
+      - student_id
+      - semester_id
+      - transaction_date
+      - transaction_type
+      - transaction_category
+      - amount
+      - payment_method
+      - payment_status
+      - due_date
+      - paid_date
+      - tuition_amount
+      - fees_amount
+      - room_board_amount
+      - financial_aid_amount
+      - scholarship_amount
+      - loan_amount
+      - work_study_amount
+      - payment_plan_id
+      - balance_forward
+      - current_balance
+
+  # Hechos adicionales para análisis educativo
+  fact_academic_performance:
+    fields:
+      - "*common_fields"
+      - performance_id
+      - student_id
+      - semester_id
+      - gpa_semester
+      - gpa_cumulative
+      - credit_hours_attempted
+      - credit_hours_completed
+      - credit_hours_passed
+      - courses_withdrawn
+      - courses_incomplete
+      - academic_standing
+      - probation_status
+      - honors_achievement
+      - dean_list_status
+      - graduation_progress_percentage
+      - major_change_count
+      - advisor_meetings_count
+
+  fact_retention_metrics:
+    fields:
+      - "*common_fields"
+      - retention_id
+      - student_id
+      - cohort_year
+      - semester_id
+      - enrollment_status
+      - retention_risk_score
+      - attendance_rate
+      - course_completion_rate
+      - support_services_used
+      - financial_aid_received
+      - housing_changes
+      - major_changes
+      - advisor_changes
+      - academic_interventions
+      - social_engagement_score
+      - early_alert_flags
+      - graduation_likelihood
