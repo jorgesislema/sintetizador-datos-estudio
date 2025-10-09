@@ -1,0 +1,220 @@
+tables:
+  # RR.HH. (HR Core)
+  dim_employee:
+    fields:
+      - "*common_fields"
+      - employee_id
+      - first_name
+      - last_name
+      - email_corp
+      - email_personal
+      - hire_date
+      - termination_date
+      - department_id
+      - job_title
+      - salary_base_annual
+      
+  dim_org_unit:
+    fields:
+      - "*common_fields"
+      - org_unit_id
+      - org_unit_name
+      - parent_org_unit_id
+      - manager_employee_id
+      
+  dim_job:
+    fields:
+      - "*common_fields"
+      - job_id
+      - job_title
+      - job_family
+      - job_level
+      - grade
+      
+  fact_headcount_daily:
+    fields:
+      - "*common_fields"
+      - employee_id
+      - org_unit_id
+      - headcount_date
+      - active_flag
+      
+  fact_attrition:
+    fields:
+      - "*common_fields"
+      - employee_id
+      - termination_date
+      - termination_reason
+      - voluntary_flag
+      
+  fact_overtime:
+    fields:
+      - "*common_fields"
+      - employee_id
+      - period_date
+      - overtime_hours
+      - overtime_pay
+      
+  fact_pto:
+    fields:
+      - "*common_fields"
+      - employee_id
+      - pto_date
+      - pto_type
+      - hours_taken
+      
+  # Reclutamiento / ATS
+  dim_job_req:
+    fields:
+      - "*common_fields"
+      - job_req_id
+      - position_title
+      - hiring_manager_id
+      - req_open_date
+      - req_close_date
+      
+  dim_candidate:
+    fields:
+      - "*common_fields"
+      - candidate_id
+      - source_channel
+      - assessment_score
+      - salary_expectation
+      
+  fact_pipeline_events:
+    fields:
+      - "*common_fields"
+      - candidate_id
+      - job_req_id
+      - stage
+      - stage_ts_utc
+      
+  fact_interviews:
+    fields:
+      - "*common_fields"
+      - candidate_id
+      - interview_date
+      - interviewer_id
+      - interview_score
+      
+  fact_offers:
+    fields:
+      - "*common_fields"
+      - candidate_id
+      - offer_amount
+      - offer_date
+      - accept_flag
+      
+  # Nomina / Payroll
+  dim_payroll_cycle:
+    fields:
+      - "*common_fields"
+      - payroll_cycle_id
+      - period_start
+      - period_end
+      - pay_date
+      
+  dim_benefit:
+    fields:
+      - "*common_fields"
+      - benefit_id
+      - benefit_name
+      - benefit_type
+      - employer_contribution_pct
+      
+  fact_pay_slip:
+    fields:
+      - "*common_fields"
+      - employee_id
+      - payroll_cycle_id
+      - gross_pay
+      - net_pay
+      - hours_worked
+      
+  fact_deductions:
+    fields:
+      - "*common_fields"
+      - employee_id
+      - payroll_cycle_id
+      - deduction_type
+      - deduction_amount
+      
+  fact_taxes:
+    fields:
+      - "*common_fields"
+      - employee_id
+      - payroll_cycle_id
+      - tax_type
+      - tax_amount
+      
+  # Ventas (B2C/B2B2C)
+  dim_customer:
+    fields:
+      - "*common_fields"
+      - customer_id
+      - customer_name
+      - customer_type
+      - registration_date
+      - email
+      - phone
+      
+  dim_store:
+    fields:
+      - "*common_fields"
+      - store_id
+      - store_name
+      - store_type
+      - manager_id
+      - opening_date
+      
+  dim_product:
+    fields:
+      - "*common_fields"
+      - product_id
+      - sku
+      - product_name
+      - category
+      - brand
+      - unit_price
+      
+  dim_salesperson:
+    fields:
+      - "*common_fields"
+      - salesperson_id
+      - first_name
+      - last_name
+      - territory_id
+      - commission_rate
+      
+  fact_sales_line:
+    fields:
+      - "*common_fields"
+      - transaction_id
+      - customer_id
+      - store_id
+      - product_id
+      - salesperson_id
+      - transaction_date
+      - quantity
+      - unit_price
+      - line_amount
+      
+  fact_returns:
+    fields:
+      - "*common_fields"
+      - return_id
+      - original_transaction_id
+      - return_date
+      - return_reason
+      - return_amount
+      
+  fact_margins:
+    fields:
+      - "*common_fields"
+      - transaction_id
+      - product_id
+      - cost_amount
+      - margin_amount
+      - margin_pct
+
+python -m apps.ui_desktop.app
