@@ -1,0 +1,9 @@
+tables:
+  transactions:
+    fields:
+      - "*common_fields"
+      - transaction_id
+      - customer_id
+      - sku
+      - qty
+      - unit_price
