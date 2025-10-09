@@ -1,0 +1,8 @@
+tables:
+  employees:
+    fields:
+      - "*common_fields"
+      - employee_id
+      - first_name
+      - last_name
+      - email_corp
