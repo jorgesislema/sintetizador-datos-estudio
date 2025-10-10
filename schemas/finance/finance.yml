@@ -1,0 +1,143 @@
+tables:
+  # Banca / Finanzas Retail & PYME
+  dim_customer:
+    fields:
+      - "*common_fields"
+      - customer_id
+      - segment
+      - risk_segment
+      - kyc_status
+      - pep_flag
+      - aml_risk_score
+      
+  dim_account:
+    fields:
+      - "*common_fields"
+      - account_id
+      - customer_id
+      - account_type
+      - opened_date
+      - closed_date
+      - interest_rate
+      
+  dim_branch:
+    fields:
+      - "*common_fields"
+      - branch_id
+      - branch_name
+      - branch_type
+      - manager_id
+      - opening_date
+      
+  fact_transactions:
+    fields:
+      - "*common_fields"
+      - transaction_id
+      - account_id
+      - transaction_type
+      - transaction_date
+      - amount
+      - balance_after
+      - channel
+      
+  fact_loans:
+    fields:
+      - "*common_fields"
+      - loan_id
+      - customer_id
+      - loan_amount
+      - interest_rate_apr
+      - term_months
+      - disbursement_date
+      - loan_status
+      
+  fact_collections:
+    fields:
+      - "*common_fields"
+      - collection_id
+      - loan_id
+      - due_date
+      - paid_date
+      - amount_due
+      - amount_paid
+      - arrears_days
+      
+  fact_risk_scores:
+    fields:
+      - "*common_fields"
+      - customer_id
+      - score_date
+      - credit_score
+      - pd_score
+      - risk_rating
+      - score_version
+      
+  # Seguros
+  dim_policy:
+    fields:
+      - "*common_fields"
+      - policy_id
+      - product_line
+      - coverage_limit
+      - deductible
+      - start_date
+      - end_date
+      
+  dim_insured_party:
+    fields:
+      - "*common_fields"
+      - insured_party_id
+      - first_name
+      - last_name
+      - birth_date
+      - risk_factors
+      
+  dim_broker:
+    fields:
+      - "*common_fields"
+      - broker_id
+      - broker_name
+      - license_number
+      - commission_rate
+      
+  fact_premiums:
+    fields:
+      - "*common_fields"
+      - premium_id
+      - policy_id
+      - premium_amount
+      - due_date
+      - paid_date
+      - payment_status
+      
+  fact_claims:
+    fields:
+      - "*common_fields"
+      - claim_id
+      - policy_id
+      - claim_date
+      - loss_date
+      - claim_amount
+      - paid_amount
+      - claim_status
+      
+  fact_reserves:
+    fields:
+      - "*common_fields"
+      - reserve_id
+      - claim_id
+      - reserve_amount
+      - reserve_date
+      - reserve_type
+      
+  fact_risk:
+    fields:
+      - "*common_fields"
+      - policy_id
+      - assessment_date
+      - risk_score
+      - fraud_score
+      - underwriting_decision
+      
+ui_desktop:
+  start_command: "powershell -NoProfile -Command \"Get-ChildItem .\\apps\\ui_desktop\\__pycache__ -ErrorAction SilentlyContinue | Remove-Item -Force; python -m apps.ui_desktop.app\""
