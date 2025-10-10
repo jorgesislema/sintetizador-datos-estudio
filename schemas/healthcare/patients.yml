@@ -1,0 +1,35 @@
+tables:
+  patients:
+    fields:
+      - "*common_fields"
+      - patient_id
+      - episode_id
+      - payer_type
+      - plan_code
+      - age
+      - sex
+      - bmi
+      - smoker_flag
+      - comorbidities_json
+      - diagnosis_code
+      - procedure_code
+      - severity_score
+      - admission_ts_utc
+      - discharge_ts_utc
+      - length_of_stay_days
+      - icu_flag
+      - lab_test_code
+      - lab_value
+      - lab_unit
+      - lab_ref_range
+      - medication_code
+      - dose_mg
+      - route
+      - frequency
+      - adherence_pct
+      - provider_id
+      - department
+      - costs_direct_usd
+      - reimbursement_usd
+      - readmission_30d_flag
+      - mortality_flag
