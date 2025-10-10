@@ -1,0 +1,614 @@
+tables:
+  # Nucleo Retail Micro
+  dim_product:
+    fields:
+      - "*common_fields"
+      - sku
+      - product_name
+      - category
+      - brand
+      - unit_size
+      - uom
+      - list_price
+      - cost_unit
+      
+  dim_supplier:
+    fields:
+      - "*common_fields"
+      - supplier_id
+      - supplier_name
+      - contact_phone
+      - credit_terms_days
+      - lead_time_days
+      
+  dim_store:
+    fields:
+      - "*common_fields"
+      - store_id
+      - store_name
+      - owner_name
+      - opening_date
+      
+  dim_customer:
+    fields:
+      - "*common_fields"
+      - customer_id
+      - customer_name
+      - phone
+      - loyalty_points
+      - registration_date
+      
+  fact_pos_line:
+    fields:
+      - "*common_fields"
+      - ticket_id
+      - store_id
+      - customer_id
+      - sku
+      - quantity
+      - unit_price
+      - line_total
+      - payment_method
+      
+  fact_cash_shift:
+    fields:
+      - "*common_fields"
+      - shift_id
+      - store_id
+      - cashier_id
+      - open_ts
+      - close_ts
+      - opening_cash
+      - closing_cash
+      - sales_total
+      
+  fact_inventory:
+    fields:
+      - "*common_fields"
+      - store_id
+      - sku
+      - inventory_date
+      - on_hand_qty
+      - reserved_qty
+      - reorder_point
+      
+  fact_po:
+    fields:
+      - "*common_fields"
+      - po_id
+      - supplier_id
+      - sku
+      - ordered_qty
+      - received_qty
+      - unit_cost
+      
+  # Bodega / Mini-mercado
+  dim_perishables_batch:
+    fields:
+      - "*common_fields"
+      - batch_id
+      - sku
+      - lot_number
+      - mfg_date
+      - expiry_date
+      - temperature_req_c
+      
+  fact_perishables_waste:
+    fields:
+      - "*common_fields"
+      - waste_id
+      - batch_id
+      - waste_date
+      - waste_reason
+      - waste_qty
+      
+  fact_local_promos:
+    fields:
+      - "*common_fields"
+      - promo_id
+      - promo_type
+      - start_date
+      - end_date
+      - discount_pct
+      - min_qty
+      
+  fact_distributor_credit:
+    fields:
+      - "*common_fields"
+      - distributor_id
+      - credit_limit
+      - balance_due
+      - last_payment_date
+      - credit_terms_days
+      
+  # Panaderia / Pasteleria
+  dim_recipe:
+    fields:
+      - "*common_fields"
+      - recipe_id
+      - product_name
+      - yield_units
+      - prep_time_min
+      - bake_time_min
+      
+  dim_ingredient:
+    fields:
+      - "*common_fields"
+      - ingredient_id
+      - ingredient_name
+      - supplier_id
+      - unit_cost
+      - allergen_flag
+      
+  fact_daily_production:
+    fields:
+      - "*common_fields"
+      - production_date
+      - recipe_id
+      - planned_qty
+      - produced_qty
+      - sold_qty
+      - leftover_qty
+      
+  fact_mermas:
+    fields:
+      - "*common_fields"
+      - production_date
+      - recipe_id
+      - waste_qty
+      - waste_reason
+      
+  fact_custom_orders:
+    fields:
+      - "*common_fields"
+      - order_id
+      - customer_id
+      - occasion
+      - servings
+      - deposit_amount
+      - due_date
+      
+  # Libreria / Papeleria
+  dim_book_title:
+    fields:
+      - "*common_fields"
+      - isbn13
+      - title
+      - author
+      - publisher
+      - genre
+      - language
+      
+  dim_publisher:
+    fields:
+      - "*common_fields"
+      - publisher_id
+      - publisher_name
+      - consignment_rate_pct
+      - return_window_days
+      
+  fact_books_sales:
+    fields:
+      - "*common_fields"
+      - sale_id
+      - isbn13
+      - sale_date
+      - quantity
+      - unit_price
+      
+  fact_consignment:
+    fields:
+      - "*common_fields"
+      - consignment_id
+      - isbn13
+      - received_qty
+      - sold_qty
+      - returned_qty
+      
+  fact_copy_services:
+    fields:
+      - "*common_fields"
+      - service_id
+      - customer_id
+      - pages_count
+      - color_flag
+      - binding_type
+      - total_amount
+      
+  # Peluqueria / Barberia
+  dim_service:
+    fields:
+      - "*common_fields"
+      - service_id
+      - service_name
+      - duration_min
+      - base_price
+      - commission_pct
+      
+  dim_staff:
+    fields:
+      - "*common_fields"
+      - staff_id
+      - first_name
+      - last_name
+      - specialty
+      - commission_rate
+      
+  fact_appointments:
+    fields:
+      - "*common_fields"
+      - appointment_id
+      - customer_id
+      - staff_id
+      - service_id
+      - appointment_date
+      - status
+      
+  fact_commissions:
+    fields:
+      - "*common_fields"
+      - commission_id
+      - staff_id
+      - period_start
+      - period_end
+      - services_revenue
+      - commission_amount
+      
+  fact_memberships:
+    fields:
+      - "*common_fields"
+      - membership_id
+      - customer_id
+      - tier
+      - join_date
+      - points_balance
+      
+  fact_retail_sales:
+    fields:
+      - "*common_fields"
+      - sale_id
+      - customer_id
+      - product_id
+      - quantity
+      - unit_price
+      - sale_date
+
+  # ===== NEGOCIOS ESPECIALIZADOS =====
+  # Panadería
+  dim_bakery_product:
+    fields:
+      - "*common_fields"
+      - product_id
+      - product_name
+      - recipe_id
+      - ingredients_main
+      - preparation_time_hours
+      - baking_time_minutes
+      - shelf_life_days
+      - storage_requirements
+      - allergen_info
+      - weight_grams
+      - cost_unit
+      - price_unit
+      - profit_margin_pct
+      - seasonal_item
+      - custom_order_available
+      - decoration_level
+      - difficulty_level
+      - equipment_required
+
+  dim_bakery_ingredient:
+    fields:
+      - "*common_fields"
+      - ingredient_id
+      - ingredient_name
+      - ingredient_category
+      - unit_of_measure
+      - cost_per_unit
+      - minimum_stock_level
+      - maximum_stock_level
+      - current_stock_quantity
+      - expiration_tracking_required
+      - storage_temperature
+      - organic_certified
+      - allergen_category
+      - substitution_available
+      - seasonal_availability
+      - import_domestic
+      - quality_grade
+
+  fact_bakery_production:
+    fields:
+      - "*common_fields"
+      - production_id
+      - product_id
+      - batch_number
+      - quantity_produced
+      - quantity_sold
+      - quantity_waste
+      - production_date
+      - production_start_time
+      - production_end_time
+      - baker_staff_id
+      - oven_used
+      - temperature_celsius
+      - humidity_percentage
+      - quality_score
+      - cost_materials
+      - cost_labor
+      - energy_cost
+      - total_production_cost
+
+  fact_bakery_sales:
+    fields:
+      - "*common_fields"
+      - sale_id
+      - product_id
+      - customer_id
+      - quantity
+      - unit_price
+      - total_amount
+      - sale_date
+      - sale_time
+      - delivery_pickup
+      - special_occasion
+      - customer_satisfaction
+      - repeat_customer
+      - promotional_sale
+      - customer_type
+      - revenue_generated
+      - profit_loss
+
+  # Ferretería
+  dim_hardware_product:
+    fields:
+      - "*common_fields"
+      - product_id
+      - product_name
+      - category
+      - product_subcategory
+      - brand
+      - model_number
+      - sku
+      - cost_unit
+      - price_unit
+      - markup_percentage
+      - current_stock
+      - reorder_point
+      - lead_time_days
+      - supplier_id
+      - warranty_months
+      - weight_kg
+      - dimensions_cm
+      - material_type
+      - usage_category
+      - safety_certification
+      - environmental_rating
+      - bulk_discount_available
+
+  dim_hardware_supplier:
+    fields:
+      - "*common_fields"
+      - supplier_id
+      - supplier_name
+      - contact_person
+      - phone
+      - email
+      - payment_terms
+      - credit_limit
+      - delivery_frequency
+      - minimum_order_amount
+      - discount_percentage
+      - reliability_score
+      - quality_rating
+      - delivery_performance
+      - product_categories_supplied
+      - contract_expiry_date
+
+  fact_hardware_inventory:
+    fields:
+      - "*common_fields"
+      - transaction_id
+      - product_id
+      - transaction_type
+      - quantity_change
+      - new_stock_level
+      - transaction_date
+      - reason_code
+      - purchase_order_id
+      - supplier_id
+      - unit_cost
+      - total_cost
+      - lot_batch_number
+      - location_warehouse
+      - inventory_status
+      - quality_check_passed
+
+  fact_hardware_sales:
+    fields:
+      - "*common_fields"
+      - sale_id
+      - product_id
+      - customer_id
+      - quantity
+      - unit_price
+      - total_amount
+      - sale_date
+      - project_type
+      - delivery_required
+      - installation_service
+      - warranty_sold
+      - referral_source
+      - customer_type
+
+  # Laboratorio Clínico
+  dim_lab_test:
+    fields:
+      - "*common_fields"
+      - test_id
+      - test_name
+      - test_category
+      - test_type
+      - specimen_type
+      - collection_method
+      - processing_time_hours
+      - reference_range_min
+      - reference_range_max
+      - units_measurement
+      - cost_test
+      - price_test
+      - equipment_required
+      - reagent_required
+      - certification_level
+      - fasting_required
+      - special_preparation
+      - critical_value_low
+      - critical_value_high
+      - turnaround_time_hours
+      - quality_control_frequency
+
+  dim_lab_equipment:
+    fields:
+      - "*common_fields"
+      - equipment_id
+      - equipment_name
+      - equipment_type
+      - manufacturer
+      - model
+      - serial_number
+      - purchase_date
+      - warranty_expiry
+      - last_calibration_date
+      - next_calibration_due
+      - maintenance_frequency
+      - operational_status
+      - location_lab
+      - cost_per_hour
+      - technician_certification_required
+      - daily_capacity
+      - accuracy_percentage
+      - precision_level
+
+  fact_lab_results:
+    fields:
+      - "*common_fields"
+      - result_id
+      - test_id
+      - patient_id
+      - order_date
+      - collection_date
+      - processing_date
+      - report_date
+      - technician_id
+      - equipment_id
+      - specimen_quality
+      - test_result_value
+      - test_result_status
+      - reference_range_status
+      - critical_value_flag
+      - repeat_required
+      - quality_control_passed
+      - processing_time_actual
+      - cost_actual
+
+  fact_lab_operations:
+    fields:
+      - "*common_fields"
+      - operation_id
+      - operation_date
+      - shift_type
+      - staff_count
+      - tests_processed
+      - specimens_received
+      - specimens_rejected
+      - equipment_downtime_minutes
+      - quality_control_tests
+      - turnaround_time_avg
+      - customer_complaints
+      - patient_satisfaction
+      - doctor_feedback
+      - revenue_daily
+      - costs_daily
+      - efficiency_score
+
+  # Jabonería
+  dim_soap_product:
+    fields:
+      - "*common_fields"
+      - product_id
+      - product_name
+      - fragrance_type
+      - skin_type_target
+      - ingredients_natural_pct
+      - cruelty_free
+      - ph_level
+      - weight_grams
+      - packaging_type
+      - cost_unit
+      - price_unit
+      - shelf_life_months
+      - seasonal_demand
+      - custom_formulation
+      - gift_packaging_available
+      - wholesale_available
+      - retail_channel
+      - age_group_target
+
+  dim_soap_ingredient:
+    fields:
+      - "*common_fields"
+      - ingredient_id
+      - ingredient_name
+      - ingredient_type
+      - origin_country
+      - organic_certified
+      - fair_trade_certified
+      - cost_per_kg
+      - minimum_order_kg
+      - current_stock_kg
+      - concentration_percentage
+      - allergen_info
+      - sustainability_rating
+      - expiration_date
+      - alternative_available
+
+  fact_soap_production:
+    fields:
+      - "*common_fields"
+      - production_id
+      - product_id
+      - batch_number
+      - batch_size_units
+      - production_date
+      - curing_time_days
+      - ph_test_result
+      - hardness_test_result
+      - fragrance_intensity
+      - color_consistency
+      - production_time_hours
+      - yield_percentage
+      - waste_percentage
+      - defect_count
+      - approved_units
+      - cost_materials
+      - cost_labor
+      - total_production_cost
+
+  fact_soap_sales:
+    fields:
+      - "*common_fields"
+      - sale_id
+      - product_id
+      - customer_id
+      - quantity
+      - unit_price
+      - total_amount
+      - sale_date
+      - sale_channel
+      - shipping_cost
+      - gift_purchase
+      - seasonal_promotion
+      - packaging_preference
+      - delivery_method
+      - customer_feedback_score
+      - repeat_customer
