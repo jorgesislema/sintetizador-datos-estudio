@@ -1,0 +1,182 @@
+tables:
+  # Salud (Prestadores/Clinico)
+  dim_patient_pseudo:
+    fields:
+      - "*common_fields"
+      - patient_id_hash
+      - age_range
+      - gender
+      - chronic_conditions
+      - insurance_type
+      
+  dim_provider:
+    fields:
+      - "*common_fields"
+      - provider_id
+      - provider_name
+      - specialty
+      - license_number
+      - department
+      
+  dim_procedure:
+    fields:
+      - "*common_fields"
+      - procedure_code
+      - procedure_name
+      - procedure_category
+      - base_cost
+      - duration_min
+      
+  dim_diagnosis:
+    fields:
+      - "*common_fields"
+      - diagnosis_code
+      - diagnosis_name
+      - severity_level
+      - chronic_flag
+      
+  fact_encounters:
+    fields:
+      - "*common_fields"
+      - encounter_id
+      - patient_id_hash
+      - provider_id
+      - admission_date
+      - discharge_date
+      - encounter_type
+      - total_cost
+      
+  fact_labs:
+    fields:
+      - "*common_fields"
+      - lab_id
+      - encounter_id
+      - test_code
+      - test_value
+      - reference_range
+      - abnormal_flag
+      
+  fact_medications:
+    fields:
+      - "*common_fields"
+      - medication_id
+      - encounter_id
+      - drug_code
+      - dose_mg
+      - frequency
+      - duration_days
+      
+  fact_outcomes:
+    fields:
+      - "*common_fields"
+      - outcome_id
+      - encounter_id
+      - outcome_measure
+      - outcome_value
+      - measurement_date
+      
+  # Farmaceutica / Ensayos
+  dim_trial:
+    fields:
+      - "*common_fields"
+      - trial_id
+      - phase
+      - protocol_id
+      - start_date
+      - end_date
+      
+  dim_site:
+    fields:
+      - "*common_fields"
+      - site_id
+      - site_name
+      - principal_investigator_id
+      - country
+      - enrollment_target
+      
+  dim_subject_pseudo:
+    fields:
+      - "*common_fields"
+      - subject_id_hash
+      - arm
+      - randomization_date
+      - age_range
+      - gender
+      
+  dim_visit:
+    fields:
+      - "*common_fields"
+      - visit_id
+      - visit_name
+      - visit_window_start
+      - visit_window_end
+      - required_procedures
+      
+  fact_aes:
+    fields:
+      - "*common_fields"
+      - ae_id
+      - subject_id_hash
+      - ae_term
+      - severity
+      - start_date
+      - end_date
+      - related_to_study
+      
+  fact_biomarkers:
+    fields:
+      - "*common_fields"
+      - biomarker_id
+      - subject_id_hash
+      - visit_id
+      - biomarker_code
+      - biomarker_value
+      - assay_method
+      
+  fact_adherence:
+    fields:
+      - "*common_fields"
+      - adherence_id
+      - subject_id_hash
+      - visit_id
+      - medication_taken_pct
+      - compliance_score
+      
+  # Telemedicina
+  dim_channel:
+    fields:
+      - "*common_fields"
+      - channel_id
+      - channel_name
+      - channel_type
+      - max_participants
+      
+  fact_appointments:
+    fields:
+      - "*common_fields"
+      - appointment_id
+      - patient_id_hash
+      - provider_id
+      - channel_id
+      - appointment_date
+      - duration_min
+      - completion_status
+      
+  fact_prescriptions:
+    fields:
+      - "*common_fields"
+      - prescription_id
+      - appointment_id
+      - drug_code
+      - dosage
+      - quantity
+      - refills
+      
+  fact_csat:
+    fields:
+      - "*common_fields"
+      - feedback_id
+      - appointment_id
+      - rating
+      - nps_score
+      - comment_sentiment
