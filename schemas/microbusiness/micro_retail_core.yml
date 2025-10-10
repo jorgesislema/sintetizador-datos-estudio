@@ -1,0 +1,8 @@
+tables:
+  customers:
+    fields:
+      - "*common_fields"
+      - customer_id
+      - first_name
+      - last_name
+      - email
