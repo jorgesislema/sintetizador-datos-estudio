@@ -1,0 +1,26 @@
+tables:
+  accounts:
+    fields:
+      - "*common_fields"
+      - customer_id
+      - segment
+      - risk_segment
+      - kyc_status
+      - pep_flag
+      - aml_risk_score
+      - account_id
+      - account_type
+      - opened_date
+      - closed_date
+      - balance_usd
+      - available_balance_usd
+      - avg_daily_balance_30d
+      - monthly_income_usd
+      - monthly_expense_usd
+      - debit_txn_count_mtd
+      - credit_txn_count_mtd
+      - credit_score
+      - credit_limit
+      - utilization_pct
+      - delinquency_30d_flag
+      - delinquency_60d_flag
