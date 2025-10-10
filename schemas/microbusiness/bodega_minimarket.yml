@@ -1,0 +1,8 @@
+tables:
+  tickets:
+    fields:
+      - "*common_fields"
+      - ticket_id
+      - sku
+      - qty
+      - line_total
