@@ -1,0 +1,35 @@
+tables:
+  transactions:
+    fields:
+      - "*common_fields"
+      - transaction_id
+      - order_id
+      - customer_id
+      - store_id
+      - salesperson_id
+      - channel
+      - transaction_ts_utc
+      - business_date
+      - sku
+      - product_id
+      - category
+      - subcategory
+      - brand
+      - uom
+      - qty
+      - unit_price
+      - list_price
+      - discount_pct
+      - tax_pct
+      - tax_amount
+      - line_amount_gross
+      - line_amount_net
+      - coupon_code
+      - promo_id
+      - payment_method
+      - installments
+      - shipping_method
+      - shipping_amount
+      - delivery_ts_utc
+      - margin_amount
+      - margin_pct
