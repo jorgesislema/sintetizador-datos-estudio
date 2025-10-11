@@ -1,0 +1,148 @@
+tables:
+  # Retail POS
+  dim_store:
+    fields:
+      - "*common_fields"
+      - store_id
+      - store_name
+      - store_type
+      - manager_id
+      - opening_date
+      
+  dim_cashier:
+    fields:
+      - "*common_fields"
+      - cashier_id
+      - first_name
+      - last_name
+      - hire_date
+      - shift_type
+      
+  dim_product:
+    fields:
+      - "*common_fields"
+      - product_id
+      - sku
+      - ean_upc
+      - product_name
+      - category
+      - brand
+      - unit_price
+      
+  dim_customer:
+    fields:
+      - "*common_fields"
+      - customer_id
+      - loyalty_tier
+      - loyalty_points_balance
+      - registration_date
+      
+  fact_ticket_line:
+    fields:
+      - "*common_fields"
+      - ticket_id
+      - store_id
+      - cashier_id
+      - customer_id
+      - sku
+      - quantity
+      - unit_price
+      - tax_amount
+      - line_total
+      - payment_method
+      
+  fact_voids:
+    fields:
+      - "*common_fields"
+      - void_id
+      - ticket_id
+      - void_reason
+      - void_amount
+      - void_date
+      - authorized_by
+      
+  fact_returns:
+    fields:
+      - "*common_fields"
+      - return_id
+      - original_ticket_id
+      - return_reason
+      - return_amount
+      - return_date
+      
+  fact_cash_drawer:
+    fields:
+      - "*common_fields"
+      - drawer_id
+      - cashier_id
+      - shift_date
+      - opening_cash
+      - closing_cash
+      - sales_total
+      - variance_amount
+      
+  # E-commerce
+  dim_session:
+    fields:
+      - "*common_fields"
+      - session_id
+      - user_id_hash
+      - device_type
+      - browser
+      - utm_source
+      - utm_medium
+      
+  dim_address:
+    fields:
+      - "*common_fields"
+      - address_id
+      - address_type
+      - street_address
+      - city
+      - state
+      - postal_code
+      - country
+      
+  fact_orders:
+    fields:
+      - "*common_fields"
+      - order_id
+      - customer_id
+      - session_id
+      - order_status
+      - order_date
+      - subtotal
+      - tax_amount
+      - shipping_fee
+      - total_amount
+      
+  fact_order_items:
+    fields:
+      - "*common_fields"
+      - order_item_id
+      - order_id
+      - product_id
+      - quantity
+      - unit_price
+      - line_total
+      
+  fact_payments:
+    fields:
+      - "*common_fields"
+      - payment_id
+      - order_id
+      - payment_method
+      - payment_status
+      - payment_amount
+      - payment_date
+      - transaction_id
+      
+  fact_returns_rma:
+    fields:
+      - "*common_fields"
+      - rma_id
+      - order_id
+      - return_reason
+      - return_status
+      - return_amount
+      - restocking_fee
