@@ -1,0 +1,391 @@
+tables:
+  # =======================================================
+  # PANADERÍA - Negocio de Panadería y Repostería
+  # =======================================================
+  
+  # Dimensiones Panadería
+  dim_bakery_product:
+    fields:
+      - "*common_fields"
+      - product_id
+      - product_name
+      - product_category
+      - product_type
+      - recipe_id
+      - ingredients_main
+      - preparation_time_hours
+      - baking_time_minutes
+      - shelf_life_days
+      - storage_requirements
+      - allergen_info
+      - weight_grams
+      - cost_per_unit
+      - selling_price
+      - profit_margin_pct
+      - seasonal_item
+      - custom_order_available
+      - decoration_level
+      - difficulty_level
+      - equipment_required
+
+  dim_bakery_ingredient:
+    fields:
+      - "*common_fields"
+      - ingredient_id
+      - ingredient_name
+      - ingredient_category
+      - supplier_name
+      - unit_of_measure
+      - cost_per_unit
+      - minimum_stock_level
+      - maximum_stock_level
+      - current_stock_quantity
+      - expiration_tracking_required
+      - storage_temperature
+      - organic_certified
+      - allergen_category
+      - substitution_available
+      - seasonal_availability
+      - import_domestic
+      - quality_grade
+
+  # Hechos Panadería
+  fact_bakery_production:
+    fields:
+      - "*common_fields"
+      - production_id
+      - product_id
+      - production_date
+      - batch_number
+      - quantity_produced
+      - quantity_sold
+      - quantity_waste
+      - production_start_time
+      - production_end_time
+      - baker_staff_id
+      - oven_used
+      - temperature_celsius
+      - humidity_percentage
+      - quality_score
+      - cost_materials
+      - cost_labor
+      - energy_cost
+      - total_production_cost
+      - revenue_generated
+      - profit_loss
+
+  fact_bakery_sales:
+    fields:
+      - "*common_fields"
+      - sale_id
+      - product_id
+      - customer_type
+      - sale_date
+      - sale_time
+      - quantity_sold
+      - unit_price
+      - total_amount
+      - discount_applied
+      - payment_method
+      - staff_id
+      - delivery_pickup
+      - special_occasion
+      - customer_satisfaction
+      - repeat_customer
+      - promotional_sale
+
+  # =======================================================
+  # FERRETERÍA - Negocio de Herramientas y Construcción
+  # =======================================================
+  
+  # Dimensiones Ferretería
+  dim_hardware_product:
+    fields:
+      - "*common_fields"
+      - product_id
+      - product_name
+      - product_category
+      - product_subcategory
+      - brand
+      - model_number
+      - supplier_name
+      - unit_of_measure
+      - cost_price
+      - selling_price
+      - markup_percentage
+      - current_stock_quantity
+      - minimum_stock_level
+      - maximum_stock_level
+      - reorder_point
+      - lead_time_days
+      - warranty_months
+      - weight_kg
+      - dimensions_cm
+      - material_type
+      - usage_category
+      - safety_certification
+      - environmental_rating
+      - bulk_discount_available
+
+  dim_hardware_supplier:
+    fields:
+      - "*common_fields"
+      - supplier_id
+      - supplier_name
+      - contact_person
+      - phone_number
+      - email
+      - address
+      - city
+      - payment_terms
+      - credit_limit
+      - delivery_frequency
+      - minimum_order_amount
+      - discount_percentage
+      - reliability_score
+      - quality_rating
+      - delivery_performance
+      - product_categories_supplied
+      - contract_expiry_date
+
+  # Hechos Ferretería
+  fact_hardware_inventory:
+    fields:
+      - "*common_fields"
+      - inventory_id
+      - product_id
+      - transaction_date
+      - transaction_type
+      - quantity_change
+      - unit_cost
+      - total_value
+      - reason_code
+      - staff_id
+      - supplier_id
+      - purchase_order_id
+      - lot_batch_number
+      - expiration_date
+      - location_warehouse
+      - inventory_status
+      - quality_check_passed
+
+  fact_hardware_sales:
+    fields:
+      - "*common_fields"
+      - sale_id
+      - product_id
+      - customer_type
+      - customer_id
+      - sale_date
+      - sale_time
+      - quantity_sold
+      - unit_price
+      - total_amount
+      - discount_amount
+      - tax_amount
+      - payment_method
+      - staff_id
+      - project_type
+      - delivery_required
+      - installation_service
+      - warranty_sold
+      - customer_satisfaction
+      - referral_source
+
+  # =======================================================
+  # LABORATORIO CLÍNICO - Análisis Médicos
+  # =======================================================
+  
+  # Dimensiones Laboratorio
+  dim_lab_test:
+    fields:
+      - "*common_fields"
+      - test_id
+      - test_name
+      - test_category
+      - test_type
+      - specimen_type
+      - collection_method
+      - processing_time_hours
+      - reference_range_min
+      - reference_range_max
+      - units_measurement
+      - cost_per_test
+      - selling_price
+      - equipment_required
+      - reagent_required
+      - certification_level
+      - fasting_required
+      - special_preparation
+      - critical_value_low
+      - critical_value_high
+      - turnaround_time_hours
+      - quality_control_frequency
+
+  dim_lab_equipment:
+    fields:
+      - "*common_fields"
+      - equipment_id
+      - equipment_name
+      - equipment_type
+      - manufacturer
+      - model_number
+      - serial_number
+      - purchase_date
+      - warranty_expiry
+      - last_calibration_date
+      - next_calibration_due
+      - maintenance_frequency
+      - operational_status
+      - location_lab
+      - cost_per_hour
+      - technician_certification_required
+      - daily_capacity
+      - accuracy_percentage
+      - precision_level
+
+  # Hechos Laboratorio
+  fact_lab_results:
+    fields:
+      - "*common_fields"
+      - result_id
+      - test_id
+      - patient_id
+      - order_date
+      - collection_date
+      - processing_date
+      - report_date
+      - technician_id
+      - equipment_id
+      - specimen_quality
+      - test_result_value
+      - test_result_status
+      - reference_range_status
+      - critical_value_flag
+      - repeat_required
+      - quality_control_passed
+      - processing_time_actual
+      - cost_actual
+      - revenue_generated
+      - patient_satisfaction
+      - doctor_feedback
+
+  fact_lab_operations:
+    fields:
+      - "*common_fields"
+      - operation_id
+      - date_operation
+      - shift_type
+      - staff_count
+      - tests_processed
+      - specimens_received
+      - specimens_rejected
+      - equipment_downtime_minutes
+      - quality_control_tests
+      - quality_control_passed
+      - turnaround_time_avg
+      - customer_complaints
+      - revenue_daily
+      - costs_daily
+      - profit_margin
+      - efficiency_score
+
+  # =======================================================
+  # JABONERÍA - Producción de Jabones y Cosméticos
+  # =======================================================
+  
+  # Dimensiones Jabonería
+  dim_soap_product:
+    fields:
+      - "*common_fields"
+      - product_id
+      - product_name
+      - product_type
+      - product_category
+      - fragrance_type
+      - skin_type_target
+      - ingredients_natural_pct
+      - organic_certified
+      - cruelty_free
+      - ph_level
+      - weight_grams
+      - packaging_type
+      - shelf_life_months
+      - cost_per_unit
+      - selling_price
+      - profit_margin_pct
+      - seasonal_demand
+      - custom_formulation
+      - gift_packaging_available
+      - wholesale_available
+      - retail_channel
+      - age_group_target
+
+  dim_soap_ingredient:
+    fields:
+      - "*common_fields"
+      - ingredient_id
+      - ingredient_name
+      - ingredient_type
+      - supplier_name
+      - origin_country
+      - organic_certified
+      - fair_trade_certified
+      - cost_per_kg
+      - minimum_order_kg
+      - shelf_life_months
+      - storage_requirements
+      - allergen_information
+      - concentration_percentage
+      - quality_grade
+      - sustainability_rating
+      - alternative_available
+      - seasonal_availability
+
+  # Hechos Jabonería
+  fact_soap_production:
+    fields:
+      - "*common_fields"
+      - production_id
+      - product_id
+      - production_date
+      - batch_number
+      - batch_size_units
+      - curing_time_days
+      - quality_score
+      - ph_test_result
+      - hardness_test_result
+      - fragrance_intensity
+      - color_consistency
+      - production_time_hours
+      - labor_cost
+      - material_cost
+      - energy_cost
+      - total_production_cost
+      - yield_percentage
+      - waste_percentage
+      - defect_count
+      - approved_units
+
+  fact_soap_sales:
+    fields:
+      - "*common_fields"
+      - sale_id
+      - product_id
+      - customer_type
+      - sale_channel
+      - sale_date
+      - quantity_sold
+      - unit_price
+      - total_amount
+      - discount_percentage
+      - shipping_cost
+      - payment_method
+      - customer_satisfaction
+      - repeat_purchase
+      - gift_purchase
+      - seasonal_promotion
+      - referral_source
+      - packaging_preference
+      - delivery_method
+      - customer_feedback_score
