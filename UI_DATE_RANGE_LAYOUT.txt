@@ -1,0 +1,102 @@
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   Sintetizador de Datos - Paso 2                             │
+│                   Configuración de Parámetros                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Configuración                                                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│ Fila 1:                                                                      │
+│ ┌──────────────────────────┐  ┌──────────────────────────┐                 │
+│ │ Numero de Filas: [1000▼] │  │ Perfil de Errores: [none▼]│               │
+│ └──────────────────────────┘  └──────────────────────────┘                 │
+│                                                                              │
+│ Fila 2:                                                                      │
+│ ┌────────────────────────────────────┐  ┌─────────────────────┐            │
+│ │ Directorio: [./outputs    ] [📁]   │  │ Formato: [csv ▼]    │            │
+│ └────────────────────────────────────┘  └─────────────────────┘            │
+│                                                                              │
+│ Fila 3: CONTROLES DE RANGO DE FECHAS                                        │
+│ ┌────────────────────────────────────────────────────────────────────────┐  │
+│ │ Rango de Fechas (YYYY-MM):                                             │  │
+│ │                                                                         │  │
+│ │  Desde: [2023 ▼] [01 ▼]    Hasta: [2024 ▼] [12 ▼]  [Aplicar Rango]  │  │
+│ │         ↑        ↑                 ↑        ↑           ↑              │  │
+│ │         │        │                 │        │           │              │  │
+│ │       año      mes               año      mes        botón            │  │
+│ │                                                                         │  │
+│ └────────────────────────────────────────────────────────────────────────┘  │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+DETALLES DE LOS CONTROLES:
+
+1. Spinbox "Desde - Año"
+   - Rango: 1970 - 2100
+   - Variable: self.date_from_year
+   - Ancho: 6 caracteres
+   - Valor por defecto: Año actual - 1
+
+2. Spinbox "Desde - Mes"
+   - Rango: 1 - 12
+   - Variable: self.date_from_month
+   - Ancho: 4 caracteres
+   - Valor por defecto: Mes actual
+
+3. Spinbox "Hasta - Año"
+   - Rango: 1970 - 2100
+   - Variable: self.date_to_year
+   - Ancho: 6 caracteres
+   - Valor por defecto: Año actual
+
+4. Spinbox "Hasta - Mes"
+   - Rango: 1 - 12
+   - Variable: self.date_to_month
+   - Ancho: 4 caracteres
+   - Valor por defecto: Mes actual
+
+5. Botón "Aplicar Rango"
+   - Comando: self.apply_date_range()
+   - Valida y aplica el rango de fechas
+   - Muestra mensaje de confirmación
+
+FLUJO DE DATOS:
+
+Usuario interactúa con spinboxes
+         ↓
+Usuario hace clic en "Aplicar Rango" (opcional)
+         ↓
+apply_date_range() valida entrada
+         ↓
+_apply_date_range_to_engine() normaliza y formatea
+         ↓
+set_date_range() en faker_engine.py establece variables globales
+         ↓
+Usuario genera datos (Preview/Tabla/Ecosistema)
+         ↓
+_apply_date_range_to_engine() se llama automáticamente
+         ↓
+_rand_date(), _rand_datetime_utc(), _rand_datetime_local() usan el rango
+         ↓
+Fechas generadas están dentro del rango especificado
+
+EJEMPLO DE USO:
+
+1. Usuario configura:
+   - Desde: 2023-01
+   - Hasta: 2024-12
+
+2. Sistema convierte a:
+   - start = "2023-01-01"
+   - end = "2024-12-31"
+
+3. Generación produce fechas entre estas dos fechas (inclusive)
+
+4. Metadatos de sesión guardan:
+   {
+     "date_range": {
+       "from": "2023-01",
+       "to": "2024-12"
+     }
+   }
