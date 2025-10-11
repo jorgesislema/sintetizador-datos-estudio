@@ -19,6 +19,9 @@ outputs/
 *.feather
 *.duckdb
 
+# Docs internos de pasos (no versionar)
+pasos_a_paso/
+
 # Notebooks
 .ipynb_checkpoints/
 
