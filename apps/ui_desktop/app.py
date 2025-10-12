@@ -414,6 +414,13 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                                    values=["csv", "json", "excel", "parquet"], state="readonly", width=15)
         format_combo.grid(row=1, column=4, padx=(10, 0), pady=5)
 
+        # Fila 2b: Número de sucursales (si aplica)
+        ttk.Label(config_frame, text="Número de Sucursales:").grid(row=1, column=5, sticky=tk.W, pady=5)
+        if not hasattr(self, 'branch_count'):
+            self.branch_count = tk.IntVar(value=10)
+        ttk.Spinbox(config_frame, from_=1, to=10000, textvariable=self.branch_count,
+                    width=8).grid(row=1, column=6, padx=(10, 0), pady=5)
+
         # Fila 3: Rango de fechas global
         ttk.Label(config_frame, text="Rango de Fechas (YYYY-MM):").grid(row=2, column=0, sticky=tk.W, pady=10)
         date_range_frame = ttk.Frame(config_frame)
@@ -974,6 +981,13 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                 domain = self.get_selected_domain()
                 table = self.get_selected_table()
                 rows = self.row_count.get()
+                # Si es tabla de sucursales/tiendas, sobreescribir con branch_count
+                try:
+                    tname = (table or "").lower()
+                    if tname in ("dim_store", "dim_branch") or any(x in tname for x in ["store", "branch"]):
+                        rows = int(self.branch_count.get())
+                except Exception:
+                    pass
 
                 # Paso 1: Configurar localización
                 self.root.after(0, lambda: self.status_label.config(text="Configurando localización..."))
@@ -1151,7 +1165,19 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                 # Aplicar rango de fechas global
                 self._apply_date_range_to_engine()
 
-                ecosystem_data, summary = generate_ecosystem_data(ecosystem_key, volume, apply_translation)
+                # Pasar número de sucursales si está configurado
+                branch_count = None
+                try:
+                    branch_count = int(self.branch_count.get()) if hasattr(self, 'branch_count') else None
+                except Exception:
+                    branch_count = None
+
+                ecosystem_data, summary = generate_ecosystem_data(
+                    ecosystem_key,
+                    volume,
+                    apply_translation,
+                    branch_count=branch_count
+                )
 
                 # Paso 3: Crear carpeta de sesión
                 self.root.after(0, lambda: self.status_label.config(text="Organizando archivos..."))
@@ -1240,6 +1266,10 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
         result_text += f"   🗣️ Idioma: {self.language.get() if hasattr(self, 'language') else 'N/A'}\n"
         result_text += f"   🌍 Región: {self.geographic_context.get() if hasattr(self, 'geographic_context') else 'N/A'}\n"
         result_text += f"   📊 Volumen base: {self.ecosystem_volume.get():,}\n"
+        try:
+            result_text += f"   🏬 Sucursales: {int(self.branch_count.get())}\n"
+        except Exception:
+            pass
         result_text += f"   📆 Rango de fechas: {int(self.date_from_year.get()):04d}-{int(self.date_from_month.get()):02d} a {int(self.date_to_year.get()):04d}-{int(self.date_to_month.get()):02d}\n"
 
         self.results_text.delete(1.0, tk.END)
@@ -1316,6 +1346,8 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
             "created_at": datetime.now().isoformat(),
             "language": self.language.get(),
             "geographic_context": self.geographic_context.get(),
+            # Persistir número de sucursales para auditoría de sesiones
+            "branch_count": (int(self.branch_count.get()) if hasattr(self, 'branch_count') else None),
             "date_range": {
                 "from": f"{int(self.date_from_year.get()):04d}-{int(self.date_from_month.get()):02d}",
                 "to": f"{int(self.date_to_year.get()):04d}-{int(self.date_to_month.get()):02d}"
@@ -1474,7 +1506,11 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
             config_text = f"Dominio: {self.get_selected_domain()} | Tabla: {self.get_selected_table()}\n"
             config_text += f"Filas: {self.row_count.get()} | Errores: {self.error_profile.get()}\n"
             config_text += f"Salida: {self.output_dir.get()} | Formato: {self.output_format.get()}\n"
-            config_text += f"Rango de fechas: {int(self.date_from_year.get()):04d}-{int(self.date_from_month.get()):02d} a {int(self.date_to_year.get()):04d}-{int(self.date_to_month.get()):02d}"
+            config_text += f"Rango de fechas: {int(self.date_from_year.get()):04d}-{int(self.date_from_month.get()):02d} a {int(self.date_to_year.get()):04d}-{int(self.date_to_month.get()):02d}\n"
+            try:
+                config_text += f"Sucursales: {int(self.branch_count.get())}"
+            except Exception:
+                pass
             self.final_config.config(text=config_text)
 
             self.step3_frame.pack(fill=tk.BOTH, expand=True)
