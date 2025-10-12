@@ -1,0 +1,46 @@
+
+SISTEMA DE SINTETIZADOR DE DATOS
+=================================
+
+📊 CAPACIDADES DEL SISTEMA
+--------------------------
+• Ecosistemas de negocio:     100
+• Dominios:                   7
+• Tablas totales:             140
+• Perfiles de error:          4 (none, light, moderate, heavy)
+• Formatos de salida:         CSV, Parquet, JSON, Excel
+• Países soportados:          13 (América Latina, Europa, Norteamérica)
+• Idiomas:                    2 (Español, English)
+
+🎯 CASOS DE USO
+---------------
+✓ ETL (Extract, Transform, Load)
+✓ EDA (Exploratory Data Analysis)
+✓ Machine Learning
+✓ Automatizaciones
+✓ Dashboards
+✓ Análisis 360° de Negocios
+
+📁 ESTRUCTURA DE ARCHIVOS
+-------------------------
+• core/                       - Motor principal
+• apps/                       - CLI y UI
+• schemas/                    - Definiciones de tablas
+• outputs/                    - Salidas (NO versionado)
+• docs/                       - Documentación
+
+📚 DOCUMENTACIÓN DISPONIBLE
+---------------------------
+• GUIA_COMPLETA.md           - Guía completa paso a paso
+• EJEMPLOS_PRACTICOS.md      - Ejemplos de código
+• README.md                  - Introducción y setup
+• LOCALIZATION_COMPLETE.md   - Sistema de localización
+
+🚀 CÓMO EMPEZAR
+---------------
+1. Interfaz Gráfica:    python launch_desktop.py
+2. Línea de Comandos:   python -m apps.cli.main list-domains
+3. Python directo:      Ver GUIA_COMPLETA.md
+
+======================================================================
+Sistema verificado y listo para usar! 🎉
