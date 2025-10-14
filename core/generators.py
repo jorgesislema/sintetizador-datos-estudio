@@ -62,8 +62,8 @@ def generate(domain: str, table: str, rows: int, seed: int | None = None, error_
         if base.get("currency_code") is None: base["currency_code"] = "USD"
         fx = get_fx_rate("USD", "USD")
         if base.get("fx_rate_to_usd") is None: base["fx_rate_to_usd"] = fx.rate
-        if base.get("processing_status") is None:
-            base["processing_status"] = "ok"
+        # processing_status debe ser 'ok' por defecto siempre (ignorar valores generados por heurísticas)
+        base["processing_status"] = "ok"
         if base.get("tags") is None: base["tags"] = None
         if base.get("notes") is None: base["notes"] = None
         out.append(base)
