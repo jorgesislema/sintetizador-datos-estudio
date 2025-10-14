@@ -1036,10 +1036,10 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
 
                 # Guardar archivo
                 df = pd.DataFrame(data)
-                self._save_dataframe(df, out_file, format_ext)
+                saved_path = self._save_dataframe(df, out_file, format_ext)
 
-                # Registrar tabla en la sesión
-                self.add_table_to_session(domain, table, out_file, len(data))
+                # Registrar tabla en la sesión con la ruta efectiva
+                self.add_table_to_session(domain, table, saved_path, len(data))
 
                 # Paso 4: Calcular métricas DQ
                 self.root.after(0, lambda: self.status_label.config(text="Calculando métricas DQ..."))
@@ -1051,8 +1051,8 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                 self.root.after(0, lambda: self.progress_var.set(100))
                 self.root.after(0, lambda: self.status_label.config(text="¡Tabla generada exitosamente!"))
 
-                # Mostrar resultados
-                self.root.after(0, lambda: self.show_generation_results(data, dq_metrics, out_file))
+                # Mostrar resultados usando la ruta efectiva
+                self.root.after(0, lambda: self.show_generation_results(data, dq_metrics, saved_path))
 
             except Exception as e:
                 self.root.after(0, lambda: messagebox.showerror("Error", f"Error generando tabla: {str(e)}"))
@@ -1200,13 +1200,30 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                         
                         out_file = session_folder / f"ecosystem__{table_name}.{format_ext}"
                         df = pd.DataFrame(data)
-                        self._save_dataframe(df, out_file, format_ext)
+                        saved_path = self._save_dataframe(df, out_file, format_ext)
                         
-                        # Registrar en sesión
-                        self.add_table_to_session("ecosystem", table_name, out_file, len(data))
-                        saved_files[table_name] = out_file
+                        # Registrar en sesión con la ruta efectiva
+                        self.add_table_to_session("ecosystem", table_name, saved_path, len(data))
+                        saved_files[table_name] = saved_path
 
-                # Paso 4: Guardar resumen del ecosistema
+                # Paso 4: Generar diccionario de datos en Español
+                try:
+                    from src.utils.data_dictionary_es import generate_data_dictionary_es
+                    self.root.after(0, lambda: self.status_label.config(text="Creando diccionario de datos (ES)..."))
+                    self.root.after(0, lambda: self.progress_var.set(92))
+                    dicc_dir = generate_data_dictionary_es(saved_files, session_folder)
+                except Exception as e:
+                    # No bloquear la generación si falla el diccionario
+                    dicc_dir = None
+                    try:
+                        self.root.after(0, lambda: messagebox.showwarning(
+                            "Diccionario no generado",
+                            f"Ocurrió un problema generando el diccionario de datos (ES).\nDetalle: {e}"
+                        ))
+                    except Exception:
+                        pass
+
+                # Paso 5: Guardar resumen del ecosistema
                 self.root.after(0, lambda: self.status_label.config(text="Guardando metadatos..."))
                 self.root.after(0, lambda: self.progress_var.set(95))
 
@@ -1214,7 +1231,7 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                 with open(summary_file, 'w', encoding='utf-8') as f:
                     json.dump(summary, f, indent=2, ensure_ascii=False)
 
-                # Paso 5: Finalizar
+                # Paso 6: Finalizar
                 self.root.after(0, lambda: self.progress_var.set(100))
                 self.root.after(0, lambda: self.status_label.config(text="¡Ecosistema generado exitosamente!"))
 
@@ -1227,19 +1244,57 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
 
         threading.Thread(target=generate_thread, daemon=True).start()
 
-    def _save_dataframe(self, df: pd.DataFrame, out_file: Path, format_ext: str):
-        """Guardar DataFrame en el formato especificado"""
-        if format_ext == "csv":
-            df.to_csv(out_file, index=False)
-        elif format_ext == "json":
-            df.to_json(out_file, orient='records', indent=2)
-        elif format_ext == "excel":
-            df.to_excel(out_file, index=False, engine='openpyxl')
-        elif format_ext == "parquet":
-            df.to_parquet(out_file, index=False)
-        else:
-            # Default to CSV
-            df.to_csv(out_file, index=False)
+    def _save_dataframe(self, df: pd.DataFrame, out_file: Path, format_ext: str) -> Path:
+        """Guardar DataFrame en el formato especificado.
+        Retorna la ruta efectiva del archivo guardado. Realiza fallback a CSV si el formato falla.
+        """
+        try:
+            if format_ext == "csv":
+                df.to_csv(out_file, index=False)
+                return out_file
+            elif format_ext == "json":
+                df.to_json(out_file, orient='records', indent=2)
+                return out_file
+            elif format_ext == "excel":
+                try:
+                    import openpyxl  # type: ignore  # noqa: F401
+                except Exception:
+                    # Fallback: guardar como CSV si no hay engine Excel
+                    fallback = out_file.with_suffix('.csv')
+                    df.to_csv(fallback, index=False)
+                    # Avisar al usuario de la degradación de formato
+                    try:
+                        self.root.after(0, lambda: messagebox.showwarning(
+                            "Excel no disponible",
+                            f"No se encontró openpyxl. Archivo guardado como CSV:\n{fallback}"
+                        ))
+                    except Exception:
+                        pass
+                    return fallback
+                # Si openpyxl existe, proceder
+                df.to_excel(out_file, index=False, engine='openpyxl')
+                return out_file
+            elif format_ext == "parquet":
+                df.to_parquet(out_file, index=False)
+                return out_file
+            else:
+                # Default to CSV
+                df.to_csv(out_file, index=False)
+                return out_file
+        except Exception as e:
+            # Fallback final a CSV con notificación
+            try:
+                fallback = out_file.with_suffix('.csv')
+                df.to_csv(fallback, index=False)
+                self.root.after(0, lambda: messagebox.showwarning(
+                    "Error al guardar",
+                    f"Se produjo un error guardando en formato '{format_ext}'.\n"
+                    f"Se guardó como CSV: {fallback}\n\nDetalle: {e}"
+                ))
+                return fallback
+            except Exception:
+                # Re-lanzar si el fallback también falla
+                raise
 
     def show_ecosystem_results(self, ecosystem_data: Dict, summary: Dict, saved_files: Dict):
         """Mostrar resultados de la generación de ecosistema"""
