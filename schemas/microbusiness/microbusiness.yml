@@ -359,6 +359,149 @@ tables:
       - revenue_generated
       - profit_loss
 
+  # ===== Soporte Panadería: Proveedores y Empleados =====
+  dim_supplier:
+    fields:
+      - "*common_fields"
+      - supplier_id
+      - supplier_name
+      - supplier_type
+      - tax_id
+      - contact_name
+      - phone
+      - email
+      - address
+      - payment_terms
+      - rating
+
+  dim_employee:
+    fields:
+      - "*common_fields"
+      - employee_id
+      - first_name
+      - last_name
+      - role
+      - hire_date
+      - termination_date
+      - base_salary
+      - contract_type
+      - shift_type
+
+  # Compras de ingredientes (egresos directos de materia prima)
+  fact_bakery_purchases:
+    fields:
+      - "*common_fields"
+      - purchase_id
+      - ingredient_id
+      - supplier_id
+      - quantity
+      - unit_cost
+      - total_cost
+      - purchase_date
+      - invoice_id
+      - payment_method
+      - due_date
+      - paid_date
+
+  # Gastos operativos (luz, agua, teléfono, alquiler, etc.)
+  fact_bakery_expenses:
+    fields:
+      - "*common_fields"
+      - expense_id
+      - expense_category
+      - vendor_name
+      - supplier_id
+      - expense_date
+      - amount
+      - tax_amount
+      - invoice_id
+      - payment_method
+      - paid_flag
+
+  # Nómina y remuneraciones
+  fact_payroll:
+    fields:
+      - "*common_fields"
+      - payroll_id
+      - employee_id
+      - period_start
+      - period_end
+      - base_salary
+      - overtime_hours
+      - overtime_pay
+      - bonuses
+      - deductions
+      - net_pay
+      - payment_date
+
+  # Liquidaciones de empleados (finiquito)
+  fact_employee_settlement:
+    fields:
+      - "*common_fields"
+      - settlement_id
+      - employee_id
+      - termination_date
+      - severance_amount
+      - unused_vacation_days
+      - vacation_payout
+      - other_compensation
+      - total_settlement
+
+  # Cuentas por pagar a proveedores
+  fact_accounts_payable:
+    fields:
+      - "*common_fields"
+      - ap_id
+      - supplier_id
+      - invoice_id
+      - issue_date
+      - due_date
+      - amount
+      - amount_paid
+      - status
+
+  # ===== Tablas específicas Informe Panadería-Cafetería 2025 =====
+  catalogo_productos_2025:
+    fields:
+      - "*common_fields"
+      - product_id
+      - category
+      - product_name
+      - description
+      - base_price_usd
+      - iva_rate
+      - final_price_usd
+
+  costos_insumos_2025:
+    fields:
+      - "*common_fields"
+      - ingredient_id
+      - ingredient_name
+      - supplier_unit_size
+      - supplier_unit_cost_usd
+      - cost_per_gram_usd
+
+  costos_indirectos_2025:
+    fields:
+      - "*common_fields"
+      - cost_id
+      - cost_category
+      - cost_item
+      - estimated_monthly_cost_usd
+      - notes
+
+  costos_rrhh_2025:
+    fields:
+      - "*common_fields"
+      - role
+      - base_salary_usd
+      - iess_employer_contribution_usd
+      - decimo_tercero_provision_usd
+      - decimo_cuarto_provision_usd
+      - vacation_provision_usd
+      - reserve_fund_provision_usd
+      - total_monthly_cost_per_employee_usd
+
   # Ferretería
   dim_hardware_product:
     fields:
