@@ -1460,21 +1460,40 @@ BUSINESS_ECOSYSTEMS: Dict[str, BusinessEcosystem] = {
         business_type=BusinessType.MICROBUSINESS,
         master_entities=["bread", "pastries", "ingredients"],
         core_tables={
-            "microbusiness": ["dim_product", "dim_customer", "fact_pos_line"]
+            "microbusiness": [
+                "dim_product", "dim_customer", "fact_pos_line",
+                "dim_bakery_product", "dim_bakery_ingredient", "fact_bakery_sales", "fact_bakery_production"
+            ]
         },
         support_tables={
-            "microbusiness": ["fact_inventory", "fact_custom_orders"]
+            "microbusiness": [
+                "fact_inventory", "fact_custom_orders",
+                "dim_supplier", "dim_employee", "fact_bakery_purchases", "fact_bakery_expenses",
+                "fact_accounts_payable",
+                # Tablas informativas 2025
+                "catalogo_productos_2025", "costos_insumos_2025", "costos_indirectos_2025", "costos_rrhh_2025"
+            ]
         },
         analytics_tables={
-            "microbusiness": ["fact_cash_shift"]
+            "microbusiness": ["fact_cash_shift", "fact_payroll", "fact_employee_settlement"]
         },
         relationships={
             "fact_pos_line -> dim_product": "product_id",
             "fact_pos_line -> dim_customer": "customer_id"
         },
         volume_ratios={
-            "dim_product": 1.5, "dim_customer": 3.0, "fact_pos_line": 20.0,
-            "fact_inventory": 8.0, "fact_custom_orders": 2.0, "fact_cash_shift": 2.5
+            "dim_product": 0.8, "dim_customer": 2.0, "fact_pos_line": 10.0,
+            "dim_bakery_product": 0.2, "dim_bakery_ingredient": 0.15,
+            "fact_bakery_sales": 8.0, "fact_bakery_production": 2.0,
+            "fact_inventory": 3.0, "fact_custom_orders": 0.8, "fact_cash_shift": 2.0,
+            "dim_supplier": 0.03, "dim_employee": 0.05,
+            "fact_bakery_purchases": 1.5, "fact_bakery_expenses": 0.6,
+            "fact_accounts_payable": 0.4, "fact_payroll": 0.4, "fact_employee_settlement": 0.02,
+            # Ratios mínimos (serán sobrescritos por generador fijo) para tablas 2025
+            "catalogo_productos_2025": 0.02,
+            "costos_insumos_2025": 0.02,
+            "costos_indirectos_2025": 0.02,
+            "costos_rrhh_2025": 0.02
         }
     ),
 
