@@ -722,6 +722,73 @@ GENERAL_MAP: Dict[str, Callable[[], Any]] = {
     "customer_satisfaction": lambda: _rand_numeric(1, 10),
     "repeat_customer": lambda: _rand_choice([True, False]),
     "promotional_sale": lambda: _rand_choice([True, False]),
+
+    # Proveedores / Compras / Gastos
+    "supplier_id": lambda: _rand_numeric(1000, 9999),
+    "supplier_name": lambda: _rand_choice([
+        "Molinos del Norte", "Harinas Andinas", "Lácteos del Valle", "Azucarera Central",
+        "Embutidos La Finca", "Distribuidora Occidente", "Proveedor Local"
+    ]),
+    "supplier_type": lambda: _rand_choice(["Materia prima", "Servicios", "Equipos", "Logística"]),
+    "tax_id": lambda: f"RUC-{_rand_numeric(1000000000, 9999999999)}",
+    "contact_name": lambda: _fake_or("Contacto", "name"),
+    "phone": lambda: _localized_phone(),
+    "email": lambda: _fake_or("proveedor@example.com", "email"),
+    "address": lambda: _fake_or("Dirección", "address"),
+    "payment_terms": lambda: _rand_choice(["Contado", "7 días", "15 días", "30 días", "60 días"]),
+    "rating": lambda: _rand_numeric(1, 5),
+
+    # Empleados / RR.HH.
+    "employee_id": lambda: _rand_numeric(100, 9999),
+    "first_name": lambda: _fake_or("Nombre", "first_name"),
+    "last_name": lambda: _fake_or("Apellido", "last_name"),
+    "role": lambda: _rand_choice(["Panadero", "Pastelero", "Cajero", "Repartidor", "Administrador"]),
+    "base_salary": lambda: _rand_float(400, 1500, 2),
+    "contract_type": lambda: _rand_choice(["Fijo", "Temporal", "Medio tiempo", "Prácticas"]),
+    "shift_type": lambda: _rand_choice(["Mañana", "Tarde", "Noche", "Mixto"]),
+
+    # Compras de ingredientes
+    "purchase_id": lambda: _rand_numeric(10000, 99999),
+    "unit_cost": lambda: _rand_float(0.1, 50.0, 2),
+    "total_cost": lambda: _rand_float(5.0, 500.0, 2),
+    "purchase_date": lambda: _rand_date(120),
+    "invoice_id": lambda: f"FAC-{_rand_numeric(1000, 999999)}",
+    "payment_method": lambda: _rand_choice(["Efectivo", "Transferencia", "Tarjeta", "Cheque"]),
+    "due_date": lambda: _rand_date(90),
+    "paid_date": lambda: _rand_date(60),
+
+    # Gastos operativos
+    "expense_id": lambda: _rand_numeric(10000, 99999),
+    "expense_category": lambda: _rand_choice(["Luz", "Agua", "Teléfono", "Internet", "Alquiler", "Gas", "Mantenimiento"]),
+    "vendor_name": lambda: _rand_choice(["Empresa Eléctrica", "Empresa de Agua", "Telecom", "ISP Local", "Arrendador", "Gasera"]),
+    "expense_date": lambda: _rand_date(180),
+    "amount": lambda: _rand_float(5, 2000, 2),
+    "tax_amount": lambda: _rand_float(0, 300, 2),
+    "paid_flag": lambda: _rand_choice([True, False]),
+
+    # Nómina / Payroll
+    "payroll_id": lambda: _rand_numeric(1000, 9999),
+    "period_start": lambda: _rand_date(60),
+    "period_end": lambda: _rand_date(30),
+    "overtime_hours": lambda: _rand_float(0, 30, 1),
+    "overtime_pay": lambda: _rand_float(0, 300, 2),
+    "bonuses": lambda: _rand_float(0, 500, 2),
+    "deductions": lambda: _rand_float(0, 400, 2),
+    "net_pay": lambda: _rand_float(300, 2000, 2),
+    "payment_date": lambda: _rand_date(15),
+
+    # Liquidaciones
+    "settlement_id": lambda: _rand_numeric(1000, 9999),
+    "severance_amount": lambda: _rand_float(0, 3000, 2),
+    "unused_vacation_days": lambda: _rand_numeric(0, 30),
+    "vacation_payout": lambda: _rand_float(0, 1000, 2),
+    "other_compensation": lambda: _rand_float(0, 800, 2),
+    "total_settlement": lambda: _rand_float(0, 5000, 2),
+
+    # Cuentas por pagar
+    "ap_id": lambda: _rand_numeric(1000, 9999),
+    "issue_date": lambda: _rand_date(120),
+    "status": lambda: _rand_choice(["pendiente", "parcial", "pagado", "vencido"]),
     
     # Micronegocios Especializados - Ferretería
     "product_subcategory": lambda: _rand_choice(["Tornillería", "Electricidad", "Plomería", "Jardinería", "Pintura"]),
