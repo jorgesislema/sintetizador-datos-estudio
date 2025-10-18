@@ -216,5 +216,3 @@ tables:
       - cost_amount
       - margin_amount
       - margin_pct
-
-python -m apps.ui_desktop.app

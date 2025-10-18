@@ -28,6 +28,13 @@ def generate(domain: str, table: str, rows: int, seed: int | None = None, error_
     set_seed(seed)
     # Establecer contexto de tabla para generación específica
     set_table_context(table)
+    # Tablas fijas Informe Panadería 2025
+    try:
+        from .generators_bakery_2025 import GEN_FIXED_TABLES, generate_fixed_table  # type: ignore
+        if table in GEN_FIXED_TABLES:
+            return generate_fixed_table(table)
+    except Exception:
+        pass
     
     schema = load_table_schema(domain, table)
     fields = schema["fields"]
@@ -62,8 +69,8 @@ def generate(domain: str, table: str, rows: int, seed: int | None = None, error_
         if base.get("currency_code") is None: base["currency_code"] = "USD"
         fx = get_fx_rate("USD", "USD")
         if base.get("fx_rate_to_usd") is None: base["fx_rate_to_usd"] = fx.rate
-        if base.get("processing_status") is None:
-            base["processing_status"] = "ok"
+        # processing_status debe ser 'ok' por defecto siempre (ignorar valores generados por heurísticas)
+        base["processing_status"] = "ok"
         if base.get("tags") is None: base["tags"] = None
         if base.get("notes") is None: base["notes"] = None
         out.append(base)

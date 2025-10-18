@@ -105,6 +105,11 @@ class EcosystemGenerator:
             for table in tables:
                 try:
                     volume = self._calculate_table_volume(table)
+                    # Si es tabla de sucursales/tiendas y hay override, aplicarlo
+                    if hasattr(self, 'branch_count_override') and self.branch_count_override is not None:
+                        tname = table.lower()
+                        if tname in ("dim_store", "dim_branch") or any(x in tname for x in ["store", "branch"]):
+                            volume = max(1, int(self.branch_count_override))
                     if volume > 0:
                         print(f"   {table}: {volume:,} registros")
                         data = generate(domain, table, volume)
@@ -155,6 +160,8 @@ class EcosystemGenerator:
             "total_tables": len(self.generated_data),
             "total_records": total_records,
             "base_volume": self.base_volume,
+            # Exponer override de sucursales si se aplicó
+            "branch_count": getattr(self, 'branch_count_override', None),
             "tables_summary": tables_summary,
             "master_entities": self.ecosystem.master_entities,
             "generation_timestamp": datetime.now().isoformat()
@@ -170,7 +177,8 @@ def get_available_ecosystem_options():
     return {key: ecosystem.display_name for key, ecosystem in ecosystems.items()}
 
 def generate_ecosystem_data(ecosystem_key: str, volume: int = 1000, 
-                          apply_translation: bool = False) -> Tuple[Dict[str, List[Dict]], Dict[str, Any]]:
+                          apply_translation: bool = False,
+                          branch_count: int | None = None) -> Tuple[Dict[str, List[Dict]], Dict[str, Any]]:
     """
     Función de conveniencia para generar un ecosistema completo
     
@@ -178,6 +186,8 @@ def generate_ecosystem_data(ecosystem_key: str, volume: int = 1000,
         Tuple[generated_data, summary]
     """
     generator = EcosystemGenerator()
+    # Establecer override de sucursales si se provee
+    generator.branch_count_override = branch_count
     data, summary = generator.generate_complete_ecosystem(ecosystem_key, volume, apply_translation)
     
     return data, summary

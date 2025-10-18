@@ -414,6 +414,13 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                                    values=["csv", "json", "excel", "parquet"], state="readonly", width=15)
         format_combo.grid(row=1, column=4, padx=(10, 0), pady=5)
 
+        # Fila 2b: Número de sucursales (si aplica)
+        ttk.Label(config_frame, text="Número de Sucursales:").grid(row=1, column=5, sticky=tk.W, pady=5)
+        if not hasattr(self, 'branch_count'):
+            self.branch_count = tk.IntVar(value=10)
+        ttk.Spinbox(config_frame, from_=1, to=10000, textvariable=self.branch_count,
+                    width=8).grid(row=1, column=6, padx=(10, 0), pady=5)
+
         # Fila 3: Rango de fechas global
         ttk.Label(config_frame, text="Rango de Fechas (YYYY-MM):").grid(row=2, column=0, sticky=tk.W, pady=10)
         date_range_frame = ttk.Frame(config_frame)
@@ -974,6 +981,13 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                 domain = self.get_selected_domain()
                 table = self.get_selected_table()
                 rows = self.row_count.get()
+                # Si es tabla de sucursales/tiendas, sobreescribir con branch_count
+                try:
+                    tname = (table or "").lower()
+                    if tname in ("dim_store", "dim_branch") or any(x in tname for x in ["store", "branch"]):
+                        rows = int(self.branch_count.get())
+                except Exception:
+                    pass
 
                 # Paso 1: Configurar localización
                 self.root.after(0, lambda: self.status_label.config(text="Configurando localización..."))
@@ -1022,10 +1036,10 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
 
                 # Guardar archivo
                 df = pd.DataFrame(data)
-                self._save_dataframe(df, out_file, format_ext)
+                saved_path = self._save_dataframe(df, out_file, format_ext)
 
-                # Registrar tabla en la sesión
-                self.add_table_to_session(domain, table, out_file, len(data))
+                # Registrar tabla en la sesión con la ruta efectiva
+                self.add_table_to_session(domain, table, saved_path, len(data))
 
                 # Paso 4: Calcular métricas DQ
                 self.root.after(0, lambda: self.status_label.config(text="Calculando métricas DQ..."))
@@ -1037,8 +1051,8 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                 self.root.after(0, lambda: self.progress_var.set(100))
                 self.root.after(0, lambda: self.status_label.config(text="¡Tabla generada exitosamente!"))
 
-                # Mostrar resultados
-                self.root.after(0, lambda: self.show_generation_results(data, dq_metrics, out_file))
+                # Mostrar resultados usando la ruta efectiva
+                self.root.after(0, lambda: self.show_generation_results(data, dq_metrics, saved_path))
 
             except Exception as e:
                 self.root.after(0, lambda: messagebox.showerror("Error", f"Error generando tabla: {str(e)}"))
@@ -1151,7 +1165,19 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                 # Aplicar rango de fechas global
                 self._apply_date_range_to_engine()
 
-                ecosystem_data, summary = generate_ecosystem_data(ecosystem_key, volume, apply_translation)
+                # Pasar número de sucursales si está configurado
+                branch_count = None
+                try:
+                    branch_count = int(self.branch_count.get()) if hasattr(self, 'branch_count') else None
+                except Exception:
+                    branch_count = None
+
+                ecosystem_data, summary = generate_ecosystem_data(
+                    ecosystem_key,
+                    volume,
+                    apply_translation,
+                    branch_count=branch_count
+                )
 
                 # Paso 3: Crear carpeta de sesión
                 self.root.after(0, lambda: self.status_label.config(text="Organizando archivos..."))
@@ -1174,13 +1200,30 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                         
                         out_file = session_folder / f"ecosystem__{table_name}.{format_ext}"
                         df = pd.DataFrame(data)
-                        self._save_dataframe(df, out_file, format_ext)
+                        saved_path = self._save_dataframe(df, out_file, format_ext)
                         
-                        # Registrar en sesión
-                        self.add_table_to_session("ecosystem", table_name, out_file, len(data))
-                        saved_files[table_name] = out_file
+                        # Registrar en sesión con la ruta efectiva
+                        self.add_table_to_session("ecosystem", table_name, saved_path, len(data))
+                        saved_files[table_name] = saved_path
 
-                # Paso 4: Guardar resumen del ecosistema
+                # Paso 4: Generar diccionario de datos en Español
+                try:
+                    from src.utils.data_dictionary_es import generate_data_dictionary_es
+                    self.root.after(0, lambda: self.status_label.config(text="Creando diccionario de datos (ES)..."))
+                    self.root.after(0, lambda: self.progress_var.set(92))
+                    dicc_dir = generate_data_dictionary_es(saved_files, session_folder)
+                except Exception as e:
+                    # No bloquear la generación si falla el diccionario
+                    dicc_dir = None
+                    try:
+                        self.root.after(0, lambda: messagebox.showwarning(
+                            "Diccionario no generado",
+                            f"Ocurrió un problema generando el diccionario de datos (ES).\nDetalle: {e}"
+                        ))
+                    except Exception:
+                        pass
+
+                # Paso 5: Guardar resumen del ecosistema
                 self.root.after(0, lambda: self.status_label.config(text="Guardando metadatos..."))
                 self.root.after(0, lambda: self.progress_var.set(95))
 
@@ -1188,7 +1231,7 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
                 with open(summary_file, 'w', encoding='utf-8') as f:
                     json.dump(summary, f, indent=2, ensure_ascii=False)
 
-                # Paso 5: Finalizar
+                # Paso 6: Finalizar
                 self.root.after(0, lambda: self.progress_var.set(100))
                 self.root.after(0, lambda: self.status_label.config(text="¡Ecosistema generado exitosamente!"))
 
@@ -1201,19 +1244,57 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
 
         threading.Thread(target=generate_thread, daemon=True).start()
 
-    def _save_dataframe(self, df: pd.DataFrame, out_file: Path, format_ext: str):
-        """Guardar DataFrame en el formato especificado"""
-        if format_ext == "csv":
-            df.to_csv(out_file, index=False)
-        elif format_ext == "json":
-            df.to_json(out_file, orient='records', indent=2)
-        elif format_ext == "excel":
-            df.to_excel(out_file, index=False, engine='openpyxl')
-        elif format_ext == "parquet":
-            df.to_parquet(out_file, index=False)
-        else:
-            # Default to CSV
-            df.to_csv(out_file, index=False)
+    def _save_dataframe(self, df: pd.DataFrame, out_file: Path, format_ext: str) -> Path:
+        """Guardar DataFrame en el formato especificado.
+        Retorna la ruta efectiva del archivo guardado. Realiza fallback a CSV si el formato falla.
+        """
+        try:
+            if format_ext == "csv":
+                df.to_csv(out_file, index=False)
+                return out_file
+            elif format_ext == "json":
+                df.to_json(out_file, orient='records', indent=2)
+                return out_file
+            elif format_ext == "excel":
+                try:
+                    import openpyxl  # type: ignore  # noqa: F401
+                except Exception:
+                    # Fallback: guardar como CSV si no hay engine Excel
+                    fallback = out_file.with_suffix('.csv')
+                    df.to_csv(fallback, index=False)
+                    # Avisar al usuario de la degradación de formato
+                    try:
+                        self.root.after(0, lambda: messagebox.showwarning(
+                            "Excel no disponible",
+                            f"No se encontró openpyxl. Archivo guardado como CSV:\n{fallback}"
+                        ))
+                    except Exception:
+                        pass
+                    return fallback
+                # Si openpyxl existe, proceder
+                df.to_excel(out_file, index=False, engine='openpyxl')
+                return out_file
+            elif format_ext == "parquet":
+                df.to_parquet(out_file, index=False)
+                return out_file
+            else:
+                # Default to CSV
+                df.to_csv(out_file, index=False)
+                return out_file
+        except Exception as e:
+            # Fallback final a CSV con notificación
+            try:
+                fallback = out_file.with_suffix('.csv')
+                df.to_csv(fallback, index=False)
+                self.root.after(0, lambda: messagebox.showwarning(
+                    "Error al guardar",
+                    f"Se produjo un error guardando en formato '{format_ext}'.\n"
+                    f"Se guardó como CSV: {fallback}\n\nDetalle: {e}"
+                ))
+                return fallback
+            except Exception:
+                # Re-lanzar si el fallback también falla
+                raise
 
     def show_ecosystem_results(self, ecosystem_data: Dict, summary: Dict, saved_files: Dict):
         """Mostrar resultados de la generación de ecosistema"""
@@ -1240,6 +1321,10 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
         result_text += f"   🗣️ Idioma: {self.language.get() if hasattr(self, 'language') else 'N/A'}\n"
         result_text += f"   🌍 Región: {self.geographic_context.get() if hasattr(self, 'geographic_context') else 'N/A'}\n"
         result_text += f"   📊 Volumen base: {self.ecosystem_volume.get():,}\n"
+        try:
+            result_text += f"   🏬 Sucursales: {int(self.branch_count.get())}\n"
+        except Exception:
+            pass
         result_text += f"   📆 Rango de fechas: {int(self.date_from_year.get()):04d}-{int(self.date_from_month.get()):02d} a {int(self.date_to_year.get()):04d}-{int(self.date_to_month.get()):02d}\n"
 
         self.results_text.delete(1.0, tk.END)
@@ -1316,6 +1401,8 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
             "created_at": datetime.now().isoformat(),
             "language": self.language.get(),
             "geographic_context": self.geographic_context.get(),
+            # Persistir número de sucursales para auditoría de sesiones
+            "branch_count": (int(self.branch_count.get()) if hasattr(self, 'branch_count') else None),
             "date_range": {
                 "from": f"{int(self.date_from_year.get()):04d}-{int(self.date_from_month.get()):02d}",
                 "to": f"{int(self.date_to_year.get()):04d}-{int(self.date_to_month.get()):02d}"
@@ -1474,7 +1561,11 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
             config_text = f"Dominio: {self.get_selected_domain()} | Tabla: {self.get_selected_table()}\n"
             config_text += f"Filas: {self.row_count.get()} | Errores: {self.error_profile.get()}\n"
             config_text += f"Salida: {self.output_dir.get()} | Formato: {self.output_format.get()}\n"
-            config_text += f"Rango de fechas: {int(self.date_from_year.get()):04d}-{int(self.date_from_month.get()):02d} a {int(self.date_to_year.get()):04d}-{int(self.date_to_month.get()):02d}"
+            config_text += f"Rango de fechas: {int(self.date_from_year.get()):04d}-{int(self.date_from_month.get()):02d} a {int(self.date_to_year.get()):04d}-{int(self.date_to_month.get()):02d}\n"
+            try:
+                config_text += f"Sucursales: {int(self.branch_count.get())}"
+            except Exception:
+                pass
             self.final_config.config(text=config_text)
 
             self.step3_frame.pack(fill=tk.BOTH, expand=True)

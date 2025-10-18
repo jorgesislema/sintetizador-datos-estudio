@@ -1,0 +1,14 @@
+tables:
+  employees:
+    fields:
+      - "*common_fields"
+      - employee_id
+      - first_name
+      - last_name
+      - email_corp
+      - email_personal
+      - hire_date
+      - termination_date
+      - department_id
+      - job_title
+      - salary_base_annual
