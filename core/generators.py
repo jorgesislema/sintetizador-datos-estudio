@@ -28,6 +28,13 @@ def generate(domain: str, table: str, rows: int, seed: int | None = None, error_
     set_seed(seed)
     # Establecer contexto de tabla para generación específica
     set_table_context(table)
+    # Tablas fijas Informe Panadería 2025
+    try:
+        from .generators_bakery_2025 import GEN_FIXED_TABLES, generate_fixed_table  # type: ignore
+        if table in GEN_FIXED_TABLES:
+            return generate_fixed_table(table)
+    except Exception:
+        pass
     
     schema = load_table_schema(domain, table)
     fields = schema["fields"]
