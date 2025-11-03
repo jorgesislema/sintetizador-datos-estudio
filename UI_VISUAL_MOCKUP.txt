@@ -1,0 +1,75 @@
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║                    SINTETIZADOR DE DATOS - ESTUDIO                           ║
+║                   Interfaz de Escritorio con Tkinter                         ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ PASO 2: Configuración de Parámetros                                         │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 📊 CONFIGURACIÓN BÁSICA                                                      ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+  Filas:  ┌────────┐         Perfil de Errores:  ┌──────────────┐
+          │  1000  │ ▲▼                           │ none         │ ▼
+          └────────┘                              └──────────────┘
+
+  Directorio de Salida:  ┌──────────────────────────────┐  ┌──────────┐
+                          │ ./outputs                    │  │ Explorar │
+                          └──────────────────────────────┘  └──────────┘
+
+  Formato de Archivo:  ┌──────────────┐
+                        │ csv          │ ▼
+                        └──────────────┘
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 📅 RANGO DE FECHAS (YYYY-MM) ★ CONTROLES MEJORADOS ★                        ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+  Desde:  ┌────────┐  ┌──────────────┐      Hasta:  ┌────────┐  ┌──────────────┐
+          │  2024  │ ▲▼│  Octubre    │ ▼            │  2025  │ ▲▼│  Octubre    │ ▼
+          └────────┘  └──────────────┘              └────────┘  └──────────────┘
+                        └─ Nombres de          └─ Nombres de
+                           meses en español       meses en español
+
+  ┌──────────────┐   │   ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+  │   Aplicar    │   │   │  Último Mes  │  │  Último Año  │  │   Este Año   │
+  │    Rango     │   │   │              │  │              │  │              │
+  └──────────────┘   │   └──────────────┘  └──────────────┘  └──────────────┘
+                     │
+                     └─ Atajos rápidos (aplican automáticamente)
+
+  ╭─────────────────────────────────────────────────────────────────────────╮
+  │ ℹ️  El rango de fechas se aplicará a TODOS los campos de fecha/hora    │
+  │    generados en las tablas. Los botones de atajo configuran y aplican  │
+  │    el rango automáticamente sin necesidad de presionar "Aplicar Rango".│
+  ╰─────────────────────────────────────────────────────────────────────────╯
+
+CARACTERÍSTICAS IMPLEMENTADAS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ 1. Dropdowns con Nombres de Meses
+   → Enero, Febrero, Marzo, etc. (en español)
+   → Más intuitivo que números
+   → Imposible ingresar mes inválido
+
+✅ 2. Botones de Selección Rápida
+   → "Último Mes": Mes anterior
+   → "Último Año": Últimos 12 meses
+   → "Este Año": Enero hasta hoy
+   → Aplicación automática
+
+✅ 3. Validación Automática
+   → Auto-corrección si fin < inicio
+   → Cálculo del último día del mes
+   → Mensajes de confirmación
+
+✅ 4. Integración Completa
+   → Preview, tabla única, ecosistemas
+   → Persistencia en metadatos
+   → Display en resultados
+

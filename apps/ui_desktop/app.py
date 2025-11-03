@@ -75,6 +75,14 @@ class DataSynthesizerApp:
             self.date_to_year = tk.IntVar(value=2024)
             self.date_to_month = tk.IntVar(value=12)
         
+        # Mapa de nombres de meses para UI mejorada
+        self.month_names = {
+            1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
+            5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
+            9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+        }
+        self.month_display_to_num = {v: k for k, v in self.month_names.items()}
+        
         # ===== VARIABLES DE SESIÓN =====
         self.current_session_id = None
         self.session_folder = None
@@ -430,18 +438,37 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
         ttk.Label(date_range_frame, text="Desde:").pack(side=tk.LEFT)
         from_year = ttk.Spinbox(date_range_frame, from_=1970, to=2100, textvariable=self.date_from_year, width=6)
         from_year.pack(side=tk.LEFT, padx=(5, 2))
-        from_month = ttk.Spinbox(date_range_frame, from_=1, to=12, textvariable=self.date_from_month, width=4)
+        
+        # Combobox para mes con nombres
+        self.date_from_month_display = tk.StringVar(value=self.month_names[self.date_from_month.get()])
+        from_month = ttk.Combobox(date_range_frame, textvariable=self.date_from_month_display,
+                                  values=list(self.month_names.values()), state="readonly", width=12)
         from_month.pack(side=tk.LEFT, padx=(2, 10))
+        from_month.bind('<<ComboboxSelected>>', lambda e: self._update_month_from_display('from'))
         
         # Hasta
         ttk.Label(date_range_frame, text="Hasta:").pack(side=tk.LEFT)
         to_year = ttk.Spinbox(date_range_frame, from_=1970, to=2100, textvariable=self.date_to_year, width=6)
         to_year.pack(side=tk.LEFT, padx=(5, 2))
-        to_month = ttk.Spinbox(date_range_frame, from_=1, to=12, textvariable=self.date_to_month, width=4)
+        
+        # Combobox para mes con nombres
+        self.date_to_month_display = tk.StringVar(value=self.month_names[self.date_to_month.get()])
+        to_month = ttk.Combobox(date_range_frame, textvariable=self.date_to_month_display,
+                                values=list(self.month_names.values()), state="readonly", width=12)
         to_month.pack(side=tk.LEFT, padx=(2, 10))
+        to_month.bind('<<ComboboxSelected>>', lambda e: self._update_month_from_display('to'))
         
         apply_date_btn = ttk.Button(date_range_frame, text="Aplicar Rango", command=self.apply_date_range)
         apply_date_btn.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # Atajos rápidos para rangos comunes
+        ttk.Label(date_range_frame, text="│").pack(side=tk.LEFT, padx=(15, 5))
+        ttk.Button(date_range_frame, text="Último Mes", width=10,
+                  command=lambda: self._set_quick_range('last_month')).pack(side=tk.LEFT, padx=2)
+        ttk.Button(date_range_frame, text="Último Año", width=10,
+                  command=lambda: self._set_quick_range('last_year')).pack(side=tk.LEFT, padx=2)
+        ttk.Button(date_range_frame, text="Este Año", width=10,
+                  command=lambda: self._set_quick_range('this_year')).pack(side=tk.LEFT, padx=2)
 
         # ===== NUEVA SECCIÓN DE LOCALIZACIÓN =====
         if LOCALIZATION_AVAILABLE:
@@ -546,6 +573,65 @@ Características: Generación híbrida, SCD2 automático, Perfiles de error, DQ 
         last_day = calendar.monthrange(y2, m2)[1]
         end = f"{y2:04d}-{m2:02d}-{last_day:02d}"
         set_date_range(start, end)
+
+    def _update_month_from_display(self, which):
+        """Sincronizar el valor numérico del mes desde el nombre mostrado."""
+        if which == 'from':
+            month_name = self.date_from_month_display.get()
+            if month_name in self.month_display_to_num:
+                self.date_from_month.set(self.month_display_to_num[month_name])
+        else:  # 'to'
+            month_name = self.date_to_month_display.get()
+            if month_name in self.month_display_to_num:
+                self.date_to_month.set(self.month_display_to_num[month_name])
+    
+    def _set_quick_range(self, range_type):
+        """Establecer un rango de fechas predefinido."""
+        now = datetime.now()
+        
+        if range_type == 'last_month':
+            # Mes pasado
+            if now.month == 1:
+                from_year, from_month = now.year - 1, 12
+            else:
+                from_year, from_month = now.year, now.month - 1
+            to_year, to_month = from_year, from_month
+            
+        elif range_type == 'last_year':
+            # Últimos 12 meses
+            from_year = now.year - 1 if now.month == 1 else now.year
+            from_month = now.month
+            to_year, to_month = now.year, now.month
+            
+        elif range_type == 'this_year':
+            # Este año (enero hasta hoy)
+            from_year, from_month = now.year, 1
+            to_year, to_month = now.year, now.month
+        else:
+            return
+        
+        # Actualizar valores
+        self.date_from_year.set(from_year)
+        self.date_from_month.set(from_month)
+        self.date_to_year.set(to_year)
+        self.date_to_month.set(to_month)
+        
+        # Actualizar displays de meses
+        self.date_from_month_display.set(self.month_names[from_month])
+        self.date_to_month_display.set(self.month_names[to_month])
+        
+        # Aplicar automáticamente
+        self._apply_date_range_to_engine()
+        
+        # Mostrar confirmación
+        range_desc = {
+            'last_month': 'Último Mes',
+            'last_year': 'Últimos 12 Meses',
+            'this_year': 'Este Año'
+        }
+        messagebox.showinfo("Rango Rápido", 
+                          f"Rango '{range_desc[range_type]}' aplicado:\n"
+                          f"{from_year}-{from_month:02d} a {to_year}-{to_month:02d}")
 
     def apply_date_range(self):
         """Validar y aplicar el rango de fechas desde la UI."""
